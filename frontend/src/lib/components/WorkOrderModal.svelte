@@ -214,17 +214,43 @@ async function handleSubmit() {
 	}
 }
 
+async function handleDelete() {
+	if (!workOrder) return;
+
+	if (
+		!confirm(
+			`Are you sure you want to delete "${workOrder.title}"? This action cannot be undone.`,
+		)
+	) {
+		return;
+	}
+
+	try {
+		await clientWrapper({
+			method: "DELETE",
+			url: `${API_ENDPOINTS.WORK_ORDERS}/${workOrder.id}`,
+		});
+
+		// Refresh the work orders list and close modal
+		queryClient.invalidateQueries({ queryKey: ["workOrders"] });
+		onClose();
+	} catch (error) {
+		console.error("Error deleting work order:", error);
+		alert("Failed to delete work order. Please try again.");
+	}
+}
+
 // Badge styling and date formatting now handled by shared utilities
 </script>
 
 {#if isOpen && (workOrder || mode === "create")}
 <div class="modal modal-open z-50">
-  <div class="modal-box w-11/12 max-w-6xl bg-base-100 shadow-2xl border border-base-300 rounded-xl p-8 z-50">
+  <div class="modal-box w-full max-w-5xl h-[92vh] mx-auto bg-base-100 shadow-2xl border border-base-300 rounded-xl p-8 z-50 flex flex-col">
     <div class="flex items-center justify-between mb-8">
       <h3 class="font-bold text-xl text-base-content">
-        {mode === "view" ? "Work Order Details" : mode === "edit" ? "Edit Work Order" : "Create Work Order"}
+        {mode === "view" ? workOrder?.title || "Work Order Details" : mode === "edit" ? workOrder?.title || "Edit Work Order" : "Create Work Order"}
         {#if workOrder}
-          <span class="text-base-content/60 font-mono text-sm">#{workOrder.id.slice(0, 8)}</span>
+          <span class="text-base-content/60 font-mono text-sm">(#{workOrder.id.slice(0, 8)})</span>
         {/if}
       </h3>
       <button class="btn btn-sm btn-circle btn-ghost" onclick={onClose}>✕</button>
@@ -232,60 +258,78 @@ async function handleSubmit() {
 
     {#if mode === "view"}
       <!-- View Mode -->
-      <div class="space-y-8">
+      <div class="space-y-8 flex-1 overflow-auto">
         <div class="bg-base-200/50 p-6 rounded-lg">
-          <h4 class="text-xl font-semibold text-base-content mb-3">{workOrder?.title}</h4>
-          <p class="text-base-content/70 text-base leading-relaxed">{workOrder?.description || "No description provided"}</p>
+          <div class="flex items-center gap-3 mb-4">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-base-content/60" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            <p class="font-semibold text-base-content">Description</p>
+          </div>
+          <textarea readonly class="w-full min-h-32 max-h-48 resize-none whitespace-pre-wrap text-base-content/70 bg-transparent border-none outline-none p-0">{workOrder?.description || "No description provided"}</textarea>
         </div>
 
+        <!-- Location and Timeline side by side -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {#if workOrder?.location}
+            <div class="bg-base-200/50 p-6 rounded-lg">
+              <div class="flex items-center gap-3 mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-base-content/60" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                <p class="font-semibold text-base-content">Location</p>
+              </div>
+              <p class="font-semibold text-base">{workOrder?.location?.address || workOrder?.location?.name}</p>
+              {#if workOrder?.location?.city || workOrder?.location?.state_province || workOrder?.location?.postal_code}
+                <p class="text-base-content/70 mt-1">
+                  {[workOrder?.location?.city, [workOrder?.location?.state_province, workOrder?.location?.postal_code].filter(Boolean).join(' ')].filter(Boolean).join(', ')}
+                </p>
+              {/if}
+            </div>
+          {/if}
+
+          <div class="bg-base-200/50 p-6 rounded-lg">
+            <div class="flex items-center gap-3 mb-4">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-base-content/60" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <p class="font-semibold text-base-content">Timeline</p>
+            </div>
+            <div class="space-y-2">
+              <p class="text-base"><span class="text-base-content/60">Created:</span> {formatDateTime(workOrder?.created_at || '')}</p>
+              {#if workOrder?.updated_at !== workOrder?.created_at}
+                <p class="text-base"><span class="text-base-content/60">Updated:</span> {formatDateTime(workOrder?.updated_at || '')}</p>
+              {/if}
+            </div>
+          </div>
+        </div>
+
+        <!-- Badges below -->
         <div class="flex gap-2">
           <div class="badge {getModalStatusBadgeClasses(workOrder?.status || '').bg} {getModalStatusBadgeClasses(workOrder?.status || '').text}">{workOrder?.status}</div>
           <div class="badge border {getModalPriorityBadgeClasses(workOrder?.priority || '').bg} {getModalPriorityBadgeClasses(workOrder?.priority || '').text} {getModalPriorityBadgeClasses(workOrder?.priority || '').border}">{workOrder?.priority}</div>
         </div>
-
-        {#if workOrder?.location}
-          <div class="bg-base-200 p-6 rounded-lg border border-base-300">
-            <div class="flex items-center gap-3 mb-4">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-base-content/60" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-              </svg>
-              <p class="font-semibold text-base-content">Location</p>
-            </div>
-            <p class="font-semibold text-base">{workOrder?.location?.address || workOrder?.location?.name}</p>
-            {#if workOrder?.location?.city || workOrder?.location?.state_province || workOrder?.location?.postal_code}
-              <p class="text-base-content/70 mt-1">
-                {[workOrder?.location?.city, [workOrder?.location?.state_province, workOrder?.location?.postal_code].filter(Boolean).join(' ')].filter(Boolean).join(', ')}
-              </p>
-            {/if}
-          </div>
-        {/if}
-
-        <div class="bg-base-200/30 p-6 rounded-lg">
-          <div class="flex items-center gap-3 mb-4">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-base-content/60" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <p class="font-semibold text-base-content">Timeline</p>
-          </div>
-          <div class="space-y-2">
-            <p class="text-base"><span class="text-base-content/60">Created:</span> {formatDateTime(workOrder?.created_at || '')}</p>
-            {#if workOrder?.updated_at !== workOrder?.created_at}
-              <p class="text-base"><span class="text-base-content/60">Updated:</span> {formatDateTime(workOrder?.updated_at || '')}</p>
-            {/if}
-          </div>
-        </div>
       </div>
 
-      <div class="modal-action pt-8 mt-8 border-t border-base-300">
+      <div class="modal-action pt-6 border-t border-base-300 mt-auto">
+        {#if workOrder}
+          <button class="btn btn-ghost text-orange-700 hover:bg-orange-50 hover:text-orange-800" onclick={handleDelete} title="Delete work order" aria-label="Delete work order">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+            Delete
+          </button>
+        {/if}
+        <div class="flex-1"></div>
         <button class="btn btn-ghost" onclick={onClose}>Close</button>
         <button class="btn btn-primary" onclick={() => mode = "edit"}>Edit</button>
       </div>
 
     {:else if mode === "edit" || mode === "create"}
       <!-- Edit/Create Mode -->
-      <form onsubmit={(e) => { e.preventDefault(); handleSubmit(); }}>
-        <div class="space-y-8">
+      <form onsubmit={(e) => { e.preventDefault(); handleSubmit(); }} class="flex flex-col flex-1">
+        <div class="space-y-8 flex-1 overflow-auto">
           <div class="form-control">
             <label class="label" for="edit-title">
               <span class="label-text">Title</span>
@@ -297,7 +341,7 @@ async function handleSubmit() {
             <label class="label" for="edit-description">
               <span class="label-text">Description</span>
             </label>
-            <textarea id="edit-description" name="description" class="textarea textarea-bordered w-full min-h-24" bind:value={editForm.description}></textarea>
+            <textarea id="edit-description" name="description" class="textarea textarea-bordered w-full min-h-24 max-h-40 resize-y" bind:value={editForm.description}></textarea>
           </div>
 
           <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -331,8 +375,6 @@ async function handleSubmit() {
           </div>
 
           <div class="space-y-4">
-            <h4 class="font-medium text-base-content">Location</h4>
-
             <div class="form-control">
               <label class="label" for="edit-location-address">
                 <span class="label-text">Street Address</span>
@@ -396,7 +438,16 @@ async function handleSubmit() {
 
         </div>
 
-        <div class="modal-action pt-8 mt-8 border-t border-base-300">
+        <div class="modal-action pt-6 border-t border-base-300 mt-auto">
+          {#if workOrder && mode === "edit"}
+            <button type="button" class="btn btn-ghost text-orange-700 hover:bg-orange-50 hover:text-orange-800" onclick={handleDelete} title="Delete work order" aria-label="Delete work order">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+              Delete
+            </button>
+          {/if}
+          <div class="flex-1"></div>
           <button type="button" class="btn btn-ghost" onclick={onClose}>Cancel</button>
           <button type="submit" class="btn btn-primary" disabled={isCreatingLocation || (mode === "create" ? $workOrderCreateMutation.isPending : $updateMutation.isPending)}>
             {#if mode === "create"}

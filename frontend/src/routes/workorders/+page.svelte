@@ -12,14 +12,13 @@ import { createQuery } from "@tanstack/svelte-query";
 
 // Filter states
 // biome-ignore lint/style/useConst: Svelte 5 binding/assignment requires let
-let statusFilter = $state<string>("all");
+let statusFilter = $state<string[]>([]);
 // biome-ignore lint/style/useConst: Svelte 5 binding/assignment requires let
-let priorityFilter = $state<string>("all");
+let priorityFilter = $state<string[]>([]);
 let sortBy = $state<"id" | "title" | "status" | "priority" | "created_at">(
 	"created_at",
 );
 let sortOrder = $state<"asc" | "desc">("desc");
-// biome-ignore lint/style/useConst: Svelte 5 assignment requires let
 let currentPage = $state(1);
 const itemsPerPage = 10;
 
@@ -43,28 +42,28 @@ const queryOptions = $derived({
 // Pass the derived options to createQuery, and make workOrdersQuery itself derived
 const workOrdersQuery = $derived(createQuery(queryOptions));
 
-// Filter and sort work orders
-let filteredWorkOrders = $state<WorkOrder[]>([]);
+// Filter and sort work orders (client-side)
+let filteredAndSortedWorkOrders = $state<WorkOrder[]>([]);
 
 $effect(() => {
 	if (!$workOrdersQuery.data?.data) {
-		filteredWorkOrders = [];
+		filteredAndSortedWorkOrders = [];
 		return;
 	}
 
 	let filtered = [...$workOrdersQuery.data.data];
 
 	// Apply status filter
-	if (statusFilter !== "all") {
-		filtered = filtered.filter((wo) => wo.status === statusFilter);
+	if (statusFilter.length > 0) {
+		filtered = filtered.filter((wo) => statusFilter.includes(wo.status));
 	}
 
 	// Apply priority filter
-	if (priorityFilter !== "all") {
-		filtered = filtered.filter((wo) => wo.priority === priorityFilter);
+	if (priorityFilter.length > 0) {
+		filtered = filtered.filter((wo) => priorityFilter.includes(wo.priority));
 	}
 
-	// Apply sorting
+	// Apply client-side sorting
 	filtered.sort((a, b) => {
 		let aVal: string | number | Date = a[sortBy];
 		let bVal: string | number | Date = b[sortBy];
@@ -85,7 +84,14 @@ $effect(() => {
 		return 0;
 	});
 
-	filteredWorkOrders = filtered;
+	filteredAndSortedWorkOrders = filtered;
+});
+
+// Reset pagination when filters change
+$effect(() => {
+	statusFilter;
+	priorityFilter;
+	currentPage = 1;
 });
 
 // Get unique statuses and priorities
@@ -123,12 +129,6 @@ function openViewModal(workOrder: WorkOrder) {
 	isModalOpen = true;
 }
 
-function openEditModal(workOrder: WorkOrder) {
-	selectedWorkOrder = workOrder;
-	modalMode = "edit";
-	isModalOpen = true;
-}
-
 function openCreateModal() {
 	selectedWorkOrder = null;
 	modalMode = "create";
@@ -140,39 +140,9 @@ function closeModal() {
 	selectedWorkOrder = null;
 }
 
-async function deleteWorkOrder(workOrder: WorkOrder) {
-	if (
-		!confirm(
-			`Are you sure you want to delete "${workOrder.title}"? This action cannot be undone.`,
-		)
-	) {
-		return;
-	}
-
-	try {
-		await clientWrapper({
-			method: "DELETE",
-			url: `${API_ENDPOINTS.WORK_ORDERS}/${workOrder.id}`,
-		});
-
-		// Refresh the work orders list
-		$workOrdersQuery.refetch();
-	} catch (error) {
-		console.error("Error deleting work order:", error);
-		alert("Failed to delete work order. Please try again.");
-	}
-}
-
 // Badge styling and date formatting now handled by shared utilities
 </script>
 
-<style>
-  select:focus {
-    outline: none;
-    border-color: inherit;
-    box-shadow: none;
-  }
-</style>
 
 <div class="px-2 py-4 sm:px-4 lg:px-6 max-w-none">
   <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
@@ -203,55 +173,89 @@ async function deleteWorkOrder(workOrder: WorkOrder) {
     <!-- Filters -->
     <div class="flex flex-wrap items-end justify-between gap-4 mb-6">
       <div class="flex gap-4">
+        <!-- Status Filter -->
         <div class="form-control">
-          <label class="label" for="status-filter">
-            <span class="label-text font-medium">Status</span>
-          </label>
-          <select
-            id="status-filter"
-            name="status-filter"
-            class="select select-bordered bg-base-100"
-            bind:value={statusFilter}
-          >
-            <option value="all">All Statuses</option>
-            {#each uniqueStatuses as status}
-              <option value={status}>{status}</option>
-            {/each}
-          </select>
+          <span class="label-text font-medium mb-2">Status</span>
+          <div class="dropdown">
+            <button type="button" class="btn btn-outline bg-base-100 justify-between min-w-48">
+              <span>
+                {#if statusFilter.length === 0}
+                  All Statuses
+                {:else if statusFilter.length === 1}
+                  {statusFilter[0]}
+                {:else}
+                  {statusFilter.length} selected
+                {/if}
+              </span>
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            <div class="dropdown-content menu bg-base-100 rounded-box z-[1] w-52 p-2 shadow border">
+              {#each uniqueStatuses as status}
+                <label class="label cursor-pointer justify-start">
+                  <input
+                    type="checkbox"
+                    class="checkbox checkbox-sm mr-3"
+                    bind:group={statusFilter}
+                    value={status}
+                  />
+                  <span class="label-text">{status}</span>
+                </label>
+              {/each}
+            </div>
+          </div>
         </div>
 
+        <!-- Priority Filter -->
         <div class="form-control">
-          <label class="label" for="priority-filter">
-            <span class="label-text font-medium">Priority</span>
-          </label>
-          <select
-            id="priority-filter"
-            name="priority-filter"
-            class="select select-bordered bg-base-100"
-            bind:value={priorityFilter}
-          >
-            <option value="all">All Priorities</option>
-            {#each uniquePriorities as priority}
-              <option value={priority}>{priority}</option>
-            {/each}
-          </select>
+          <span class="label-text font-medium mb-2">Priority</span>
+          <div class="dropdown">
+            <button type="button" class="btn btn-outline bg-base-100 justify-between min-w-48">
+              <span>
+                {#if priorityFilter.length === 0}
+                  All Priorities
+                {:else if priorityFilter.length === 1}
+                  {priorityFilter[0]}
+                {:else}
+                  {priorityFilter.length} selected
+                {/if}
+              </span>
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            <div class="dropdown-content menu bg-base-100 rounded-box z-[1] w-52 p-2 shadow border">
+              {#each uniquePriorities as priority}
+                <label class="label cursor-pointer justify-start">
+                  <input
+                    type="checkbox"
+                    class="checkbox checkbox-sm mr-3"
+                    bind:group={priorityFilter}
+                    value={priority}
+                  />
+                  <span class="label-text">{priority}</span>
+                </label>
+              {/each}
+            </div>
+          </div>
         </div>
       </div>
 
       <div class="text-sm text-base-content/60 font-medium">
-        {filteredWorkOrders.length} of {$workOrdersQuery.data.data.length} orders
+        {filteredAndSortedWorkOrders.length} of {$workOrdersQuery.data.data.length} orders
       </div>
     </div>
 
     <div class="card bg-base-100 shadow-xl w-full">
       <div class="card-body p-0">
-        {#if filteredWorkOrders.length === 0}
+        {#if filteredAndSortedWorkOrders.length === 0}
           <div class="text-center py-12">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto text-base-content/30 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
             </svg>
             <p class="text-base-content/60 text-lg">No work orders match your filters</p>
-            <button onclick={() => { statusFilter = "all"; priorityFilter = "all"; }} class="btn btn-sm btn-ghost mt-4">
+            <button onclick={() => { statusFilter = []; priorityFilter = []; }} class="btn btn-sm btn-ghost mt-4">
               Clear filters
             </button>
           </div>
@@ -260,9 +264,9 @@ async function deleteWorkOrder(workOrder: WorkOrder) {
             <table class="table table-zebra w-full">
               <thead>
                 <tr>
-                  <th class="cursor-pointer hover:bg-base-200" onclick={() => toggleSort("title")}>
+                  <th class="cursor-pointer hover:bg-primary/10 transition-colors" onclick={() => toggleSort("title")}>
                     <div class="flex items-center gap-2">
-                      Title & Description
+                      Title
                       {#if sortBy === "title"}
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d={sortOrder === "asc" ? "M5 15l7-7 7 7" : "M19 9l-7 7-7-7"} />
@@ -270,7 +274,27 @@ async function deleteWorkOrder(workOrder: WorkOrder) {
                       {/if}
                     </div>
                   </th>
-                  <th class="cursor-pointer hover:bg-base-200" onclick={() => toggleSort("created_at")}>
+                  <th class="cursor-pointer hover:bg-primary/10 transition-colors" onclick={() => toggleSort("status")}>
+                    <div class="flex items-center gap-2">
+                      Status
+                      {#if sortBy === "status"}
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d={sortOrder === "asc" ? "M5 15l7-7 7 7" : "M19 9l-7 7-7-7"} />
+                        </svg>
+                      {/if}
+                    </div>
+                  </th>
+                  <th class="cursor-pointer hover:bg-primary/10 transition-colors" onclick={() => toggleSort("priority")}>
+                    <div class="flex items-center gap-2">
+                      Priority
+                      {#if sortBy === "priority"}
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d={sortOrder === "asc" ? "M5 15l7-7 7 7" : "M19 9l-7 7-7-7"} />
+                        </svg>
+                      {/if}
+                    </div>
+                  </th>
+                  <th class="cursor-pointer hover:bg-primary/10 transition-colors" onclick={() => toggleSort("created_at")}>
                     <div class="flex items-center gap-2">
                       Date Opened
                       {#if sortBy === "created_at"}
@@ -280,27 +304,13 @@ async function deleteWorkOrder(workOrder: WorkOrder) {
                       {/if}
                     </div>
                   </th>
-                  <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {#each filteredWorkOrders as workOrder}
-                  <tr class="hover">
+                {#each filteredAndSortedWorkOrders as workOrder}
+                  <tr class="cursor-pointer hover:bg-primary/10 transition-colors" onclick={() => openViewModal(workOrder)}>
                     <td class="max-w-2xl">
-                      <div class="flex items-start justify-between mb-1">
-                        <div class="font-medium text-base">{workOrder.title}</div>
-                        <div class="flex flex-col gap-1 items-end">
-                          <div class="badge badge-xs border {getTableStatusBadgeClasses(workOrder.status)}">
-                            {workOrder.status}
-                          </div>
-                          <div class="badge badge-xs border {getTablePriorityBadgeClasses(workOrder.priority)}">
-                            {workOrder.priority}
-                          </div>
-                        </div>
-                      </div>
-                      {#if workOrder.description}
-                        <div class="text-sm opacity-70 mt-1">{workOrder.description}</div>
-                      {/if}
+                      <div class="font-medium text-base mb-1">{workOrder.title}</div>
                       {#if workOrder.location}
                         <div class="text-xs opacity-60 mt-1">
                           <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 inline mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -312,27 +322,17 @@ async function deleteWorkOrder(workOrder: WorkOrder) {
                       {/if}
                     </td>
                     <td>
-                      <div class="text-sm">{formatDate(workOrder.created_at)}</div>
+                      <div class="badge border {getTableStatusBadgeClasses(workOrder.status)}">
+                        {workOrder.status}
+                      </div>
                     </td>
                     <td>
-                      <div class="flex gap-1">
-                        <button class="btn btn-ghost btn-sm" onclick={() => openViewModal(workOrder)} title="View work order" aria-label="View work order">
-                          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                          </svg>
-                        </button>
-                        <button class="btn btn-ghost btn-sm" onclick={() => openEditModal(workOrder)} title="Edit work order" aria-label="Edit work order">
-                          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                          </svg>
-                        </button>
-                        <button class="btn btn-ghost btn-sm text-orange-700 hover:bg-orange-50 hover:text-orange-800" onclick={() => deleteWorkOrder(workOrder)} title="Delete work order" aria-label="Delete work order">
-                          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                          </svg>
-                        </button>
+                      <div class="badge border {getTablePriorityBadgeClasses(workOrder.priority)}">
+                        {workOrder.priority}
                       </div>
+                    </td>
+                    <td>
+                      <div class="text-sm">{formatDate(workOrder.created_at)}</div>
                     </td>
                   </tr>
                 {/each}
