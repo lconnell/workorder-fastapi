@@ -2,17 +2,6 @@ import { browser } from "$app/environment";
 import type { Database } from "$lib/types/supabase";
 import { type SupabaseClient, createClient } from "@supabase/supabase-js";
 
-// Define an interface for the SvelteKit dev environment structure
-interface SvelteKitDevEnv {
-	__sveltekit_dev?: {
-		env?: {
-			PUBLIC_SUPABASE_URL?: string;
-			PUBLIC_SUPABASE_ANON_KEY?: string;
-			[key: string]: string | undefined;
-		};
-	};
-}
-
 let supabaseInstance: SupabaseClient<Database> | null = null;
 
 function createSupabaseClient(): SupabaseClient<Database> {
@@ -25,20 +14,9 @@ function createSupabaseClient(): SupabaseClient<Database> {
 		throw new Error("Supabase client can only be initialized in the browser");
 	}
 
-	// Try to get from import.meta.env first, fallback to global
-	let supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL;
-	let supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
-
-	// Fallback to global sveltekit env if import.meta.env is empty
-	if (!supabaseUrl || !supabaseAnonKey) {
-		const globalEnv = (globalThis as SvelteKitDevEnv).__sveltekit_dev?.env;
-		if (globalEnv) {
-			supabaseUrl = supabaseUrl || globalEnv.PUBLIC_SUPABASE_URL;
-			supabaseAnonKey = supabaseAnonKey || globalEnv.PUBLIC_SUPABASE_ANON_KEY;
-		}
-	}
-
-	// Debug logging removed - environment variables are working
+	// Attempt to get environment variables
+	const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL;
+	const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
 
 	if (!supabaseUrl || !supabaseAnonKey) {
 		throw new Error(

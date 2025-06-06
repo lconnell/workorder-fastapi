@@ -155,6 +155,13 @@ tasks:
       - '{{.UV}} run mypy .'
 
   backend-pre-commit:
+    desc: Run pre-commit hooks on backend files only
+    deps: [backend-install]
+    dir: '{{.BACKEND_DIR}}'
+    cmds:
+      - '{{.UV}} run pre-commit run --files backend/**/*'
+
+  pre-commit-all:
     desc: Run pre-commit hooks on all files
     deps: [backend-install]
     dir: '{{.BACKEND_DIR}}'
@@ -332,6 +339,13 @@ tasks:
     cmds:
       - npm run format
 
+  frontend-pre-commit:
+    desc: Run pre-commit hooks on all frontend files
+    deps: [frontend-install]
+    dir: '{{.FRONTEND_DIR}}'
+    cmds:
+      - cd .. && {{.UV}} run pre-commit run --files frontend/**/*
+
   frontend-clean:
     desc: Clean up frontend generated files and caches
     dir: '{{.FRONTEND_DIR}}'
@@ -383,10 +397,11 @@ tasks:
       - task: backend-lint
 
   frontend-check-all:
-    desc: Run all frontend checks (type-check, lint)
+    desc: Run all frontend checks (type-check, lint, pre-commit)
     cmds:
       - task: frontend-check
       - task: frontend-lint
+      - task: frontend-pre-commit
 
   check-all:
     desc: Run all checks for both backend and frontend

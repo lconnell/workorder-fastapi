@@ -1,11 +1,9 @@
-type Config = import("tailwindcss").Config;
+import type { Config } from "tailwindcss";
 
-const config: Config = {
+export default {
 	content: ["./src/**/*.{html,js,svelte,ts}"],
-	plugins: [require("daisyui")],
-	daisyui: {
-		themes: ["light", "dark"],
+	theme: {
+		extend: {},
 	},
-};
-
-export default config;
+	plugins: [],
+} satisfies Config;

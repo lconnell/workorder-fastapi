@@ -23,6 +23,7 @@ repos:
         pass_filenames: false
         always_run: true
 
+  # Backend hooks
   - repo: https://github.com/psf/black
     rev: 24.3.0
     hooks:
@@ -43,3 +44,26 @@ repos:
       - id: mypy
         args: [--ignore-missing-imports]
         files: ^backend/
+
+  # Frontend hooks
+  - repo: local
+    hooks:
+      - id: frontend-biome-check
+        name: Biome check and fix (frontend)
+        entry: bash
+        args:
+          - '-c'
+          - 'cd frontend && npm run check:apply-unsafe'
+        language: system
+        files: ^frontend/.*\.(js|ts|svelte|json)$
+        pass_filenames: false
+
+      - id: frontend-svelte-check
+        name: Svelte check (frontend)
+        entry: bash
+        args:
+          - '-c'
+          - 'cd frontend && npm run check'
+        language: system
+        files: ^frontend/.*\.(js|ts|svelte)$
+        pass_filenames: false

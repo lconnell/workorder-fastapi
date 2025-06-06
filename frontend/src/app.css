@@ -1,9 +1,5 @@
 @import "tailwindcss";
 
-@plugin '@tailwindcss/forms';
-@plugin '@tailwindcss/typography';
-
 @plugin "daisyui" {
-	/* biome-ignore lint/correctness/noUnknownProperty: DaisyUI specific syntax */
 	themes: corporate --default, business --prefersdark;
 }
