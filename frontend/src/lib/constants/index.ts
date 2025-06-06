@@ -29,6 +29,7 @@ export const PRIORITY_COLORS = {
 // API endpoints
 export const API_ENDPOINTS = {
 	WORK_ORDERS: "/api/v1/work-orders",
+	LOCATIONS: "/api/v1/locations",
 	PROFILES: "/api/v1/profiles",
 	AUTH: "/api/v1/auth",
 } as const;

@@ -76,8 +76,23 @@ async def get_work_orders(
             "totalPages": total_pages,
         }
 
+        # Convert raw data to WorkOrder objects
+        work_orders = []
+        for item in data_response.data or []:
+            try:
+                work_order = WorkOrder(**item)
+                work_orders.append(work_order)
+            except Exception as validation_error:
+                print(
+                    f"Error validating work order {item.get('id', 'unknown')}: "
+                    f"{validation_error}"
+                )
+                print(f"Raw data: {item}")
+                # Skip invalid records for now
+                continue
+
         return WorkOrdersResponse(
-            data=data_response.data or [],
+            data=work_orders,
             count=total_count,
             pagination=PaginationInfo(**pagination_info),
         )
@@ -115,7 +130,18 @@ async def get_work_order(
                 status_code=status.HTTP_404_NOT_FOUND, detail="Work order not found"
             )
 
-        return WorkOrder(**response.data)
+        try:
+            return WorkOrder(**response.data)
+        except Exception as validation_error:
+            print(
+                f"Error validating single work order {work_order_id}: "
+                f"{validation_error}"
+            )
+            print(f"Raw data: {response.data}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Data validation error: {str(validation_error)}",
+            ) from validation_error
     except HTTPException:
         raise
     except Exception as e:
@@ -170,7 +196,21 @@ async def create_work_order(
                 detail="Failed to fetch newly created work order with location details",
             )
 
-        return WorkOrder(**fetch_response.data)
+        try:
+            return WorkOrder(**fetch_response.data)
+        except Exception as validation_error:
+            print(
+                f"Error validating created work order {created_wo_id}: "
+                f"{validation_error}"
+            )
+            print(f"Raw data: {fetch_response.data}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=(
+                    f"Data validation error on created work order: "
+                    f"{str(validation_error)}"
+                ),
+            ) from validation_error
     except HTTPException:
         raise
     except Exception as e:
@@ -237,7 +277,21 @@ async def update_work_order(
                 detail="Failed to fetch updated work order details.",
             )
 
-        return WorkOrder(**fetch_response.data)
+        try:
+            return WorkOrder(**fetch_response.data)
+        except Exception as validation_error:
+            print(
+                f"Error validating updated work order {work_order_id}: "
+                f"{validation_error}"
+            )
+            print(f"Raw data: {fetch_response.data}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=(
+                    f"Data validation error on updated work order: "
+                    f"{str(validation_error)}"
+                ),
+            ) from validation_error
     except HTTPException:
         raise
     except Exception as e:

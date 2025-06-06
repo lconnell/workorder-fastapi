@@ -4,12 +4,20 @@ A full-stack work order management system with FastAPI backend and modern fronte
 
 ## Features
 
-- **Authentication**: User registration, login, and JWT-based authentication via Supabase
-- **Work Order Management**: Create, read, update, and delete work orders
-- **User Profiles**: Linked to Supabase auth system
-- **Location Management**: Track work order locations
-- **Parts Inventory**: Manage parts used in work orders
-- **Notes System**: Add notes to work orders
+### Core Functionality
+- **Work Order Management**: Full CRUD operations with professional status/priority badges
+- **Location Tracking**: Address management with automatic geocoding and map visualization
+- **Advanced Filtering**: Sort by date, status, priority with real-time search
+- **Dashboard Analytics**: Visual statistics cards with clickable navigation
+- **Responsive UI**: Professional design optimized for desktop and mobile
+
+### Technical Features
+- **Authentication**: Secure JWT-based auth via Supabase with session management
+- **UUID Primary Keys**: Enhanced security with globally unique identifiers
+- **Real-time Updates**: TanStack Query for optimized caching and invalidation
+- **Professional Styling**: Consistent badge colors, subtle UI elements, DRY utilities
+- **Error Handling**: Standardized error responses and user feedback
+- **Type Safety**: End-to-end TypeScript with generated API types
 
 ## Architecture
 
@@ -40,12 +48,28 @@ This repository contains both backend and frontend code:
 ## Database Schema
 
 The Supabase project includes the following tables:
-- `profiles`: User profile information
-- `work_orders`: Main work order records
-- `locations`: Work order locations
-- `parts`: Inventory parts
-- `work_order_parts`: Parts used in work orders
-- `work_order_notes`: Notes on work orders
+- `work_orders`: Main work order records with UUID primary keys
+- `locations`: Work order locations with geocoding cache (lat/lng)
+
+### Database Migrations
+
+This project uses Supabase migrations for database schema management:
+
+```bash
+# Create a new migration
+task db-migration-new -- "add_new_feature"
+
+# Check migration status
+task db-migration-status
+
+# Deploy migrations to production
+task db-migration-push
+
+# Generate TypeScript types from database
+task db-types
+```
+
+All migrations are stored in `supabase/migrations/` and are automatically deployed via GitHub Actions when pushed to the main branch.
 
 ## Setup
 
@@ -298,9 +322,11 @@ workorder-fastapi/
 │   │   └── routes/       # SvelteKit pages and layouts
 │   ├── package.json      # Frontend dependencies
 │   └── svelte.config.js  # SvelteKit configuration
-├── database/             # Database schema and sample data
-│   ├── create_tables.sql # Database table definitions
-│   └── sample_data.sql   # Sample data for development
+├── supabase/             # Supabase configuration and migrations
+│   ├── migrations/       # Database migration files
+│   └── config.toml       # Supabase project configuration
+├── .github/              # GitHub Actions workflows
+│   └── workflows/        # CI/CD pipelines including migrations
 ├── Taskfile.yml          # Task automation configuration
 └── .pre-commit-config.yaml  # Pre-commit hooks
 ```
@@ -314,8 +340,24 @@ workorder-fastapi/
 
 ## CI/CD
 
+- **Database Migrations**: Automated deployment via GitHub Actions
 - **Dependabot**: Automated dependency updates
 - **Pre-commit**: Code quality checks on every commit
+
+### GitHub Actions Workflows
+
+- **Database Migrations** (`database-migrations.yml`): Validates and deploys database migrations on push to main
+- Migration validation runs on pull requests to catch issues early
+- Automatic deployment to production Supabase project when merged to main
+
+### Required GitHub Secrets
+
+For the migration workflow to work, add these secrets to your GitHub repository:
+
+```
+SUPABASE_PROJECT_ID=your-project-id
+SUPABASE_ACCESS_TOKEN=your-access-token
+```
 
 ## License
 

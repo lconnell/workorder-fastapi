@@ -169,13 +169,45 @@ tasks:
       - '{{.UV}} run pre-commit run --all-files'
 
   # Database tasks
-  frontend-db-types:
+  db-migration-new:
+    desc: Create a new database migration
+    cmds:
+      - supabase migration new {{.CLI_ARGS}}
+
+  db-migration-push:
+    desc: Push migrations to remote Supabase project
+    cmds:
+      - echo "🚀 Pushing migrations to remote database..."
+      - supabase db push
+
+  db-migration-reset:
+    desc: Reset local database and apply all migrations
+    cmds:
+      - echo "🔄 Resetting local database..."
+      - supabase db reset
+
+  db-migration-status:
+    desc: Check migration status
+    cmds:
+      - supabase migration list
+
+  db-link:
+    desc: Link to remote Supabase project
+    cmds:
+      - supabase link --project-ref dymvzlrouqpasfsaitla
+
+  db-types:
     desc: Generate TypeScript types from Supabase for frontend
     dir: '{{.FRONTEND_DIR}}'
     cmds:
       - echo "📝 Generating TypeScript types from Supabase..."
-      - echo "Note - This requires Supabase CLI. Install with brew install supabase/tap/supabase"
-      - echo "Run - supabase gen types typescript --project-id dymvzlrouqpasfsaitla > src/lib/types/supabase.ts"
+      - supabase gen types typescript --linked > src/lib/types/supabase.ts
+      - echo "✅ Types generated successfully"
+
+  frontend-db-types:
+    desc: Alias for db-types (backward compatibility)
+    cmds:
+      - task: db-types
 
   # Docker tasks
   backend-docker-build:
@@ -484,8 +516,3 @@ tasks:
     desc: Alias for frontend-openapi-generate (for backward compatibility)
     cmds:
       - task: frontend-openapi-generate
-
-  db-types:
-    desc: Alias for frontend-db-types (for backward compatibility)
-    cmds:
-      - task: frontend-db-types

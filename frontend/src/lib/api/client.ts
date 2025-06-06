@@ -20,13 +20,20 @@ import type {
 import type {
 	AuthResponse,
 	GetMeApiV1AuthMeGet200,
+	GetWorkOrdersApiV1WorkOrdersGetParams,
 	HTTPValidationError,
 	HealthCheckHealthGet200,
+	Location,
+	LocationCreate,
 	MessageResponse,
 	RootGet200,
 	TokenRefresh,
 	UserSignIn,
 	UserSignUp,
+	WorkOrder,
+	WorkOrderCreate,
+	WorkOrderUpdate,
+	WorkOrdersResponse,
 } from "./schemas";
 
 import { clientWrapper } from "./client-wrapper";
@@ -450,6 +457,745 @@ export const createRefreshTokenApiV1AuthRefreshPost = <
 > => {
 	const mutationOptions =
 		getRefreshTokenApiV1AuthRefreshPostMutationOptions(options);
+
+	return createMutation(mutationOptions, queryClient);
+};
+
+/**
+ * Get all locations.
+ * @summary Get Locations
+ */
+export const getLocationsApiV1LocationsGet = (signal?: AbortSignal) => {
+	return clientWrapper<Location[]>({
+		url: "/api/v1/locations",
+		method: "GET",
+		signal,
+	});
+};
+
+export const getGetLocationsApiV1LocationsGetQueryKey = () => {
+	return ["/api/v1/locations"] as const;
+};
+
+export const getGetLocationsApiV1LocationsGetQueryOptions = <
+	TData = Awaited<ReturnType<typeof getLocationsApiV1LocationsGet>>,
+	TError = unknown,
+>(options?: {
+	query?: Partial<
+		CreateQueryOptions<
+			Awaited<ReturnType<typeof getLocationsApiV1LocationsGet>>,
+			TError,
+			TData
+		>
+	>;
+}) => {
+	const { query: queryOptions } = options ?? {};
+
+	const queryKey =
+		queryOptions?.queryKey ?? getGetLocationsApiV1LocationsGetQueryKey();
+
+	const queryFn: QueryFunction<
+		Awaited<ReturnType<typeof getLocationsApiV1LocationsGet>>
+	> = ({ signal }) => getLocationsApiV1LocationsGet(signal);
+
+	return { queryKey, queryFn, ...queryOptions } as CreateQueryOptions<
+		Awaited<ReturnType<typeof getLocationsApiV1LocationsGet>>,
+		TError,
+		TData
+	> & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type GetLocationsApiV1LocationsGetQueryResult = NonNullable<
+	Awaited<ReturnType<typeof getLocationsApiV1LocationsGet>>
+>;
+export type GetLocationsApiV1LocationsGetQueryError = unknown;
+
+/**
+ * @summary Get Locations
+ */
+
+export function createGetLocationsApiV1LocationsGet<
+	TData = Awaited<ReturnType<typeof getLocationsApiV1LocationsGet>>,
+	TError = unknown,
+>(
+	options?: {
+		query?: Partial<
+			CreateQueryOptions<
+				Awaited<ReturnType<typeof getLocationsApiV1LocationsGet>>,
+				TError,
+				TData
+			>
+		>;
+	},
+	queryClient?: QueryClient,
+): CreateQueryResult<TData, TError> & {
+	queryKey: DataTag<QueryKey, TData, TError>;
+} {
+	const queryOptions = getGetLocationsApiV1LocationsGetQueryOptions(options);
+
+	const query = createQuery(queryOptions, queryClient) as CreateQueryResult<
+		TData,
+		TError
+	> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+	query.queryKey = queryOptions.queryKey;
+
+	return query;
+}
+
+/**
+ * Create a new location.
+ * @summary Create Location
+ */
+export const createLocationApiV1LocationsPost = (
+	locationCreate: LocationCreate,
+	signal?: AbortSignal,
+) => {
+	return clientWrapper<Location>({
+		url: "/api/v1/locations",
+		method: "POST",
+		headers: { "Content-Type": "application/json" },
+		data: locationCreate,
+		signal,
+	});
+};
+
+export const getCreateLocationApiV1LocationsPostMutationOptions = <
+	TError = HTTPValidationError,
+	TContext = unknown,
+>(options?: {
+	mutation?: CreateMutationOptions<
+		Awaited<ReturnType<typeof createLocationApiV1LocationsPost>>,
+		TError,
+		{ data: LocationCreate },
+		TContext
+	>;
+}): CreateMutationOptions<
+	Awaited<ReturnType<typeof createLocationApiV1LocationsPost>>,
+	TError,
+	{ data: LocationCreate },
+	TContext
+> => {
+	const mutationKey = ["createLocationApiV1LocationsPost"];
+	const { mutation: mutationOptions } = options
+		? options.mutation &&
+			"mutationKey" in options.mutation &&
+			options.mutation.mutationKey
+			? options
+			: { ...options, mutation: { ...options.mutation, mutationKey } }
+		: { mutation: { mutationKey } };
+
+	const mutationFn: MutationFunction<
+		Awaited<ReturnType<typeof createLocationApiV1LocationsPost>>,
+		{ data: LocationCreate }
+	> = (props) => {
+		const { data } = props ?? {};
+
+		return createLocationApiV1LocationsPost(data);
+	};
+
+	return { mutationFn, ...mutationOptions };
+};
+
+export type CreateLocationApiV1LocationsPostMutationResult = NonNullable<
+	Awaited<ReturnType<typeof createLocationApiV1LocationsPost>>
+>;
+export type CreateLocationApiV1LocationsPostMutationBody = LocationCreate;
+export type CreateLocationApiV1LocationsPostMutationError = HTTPValidationError;
+
+/**
+ * @summary Create Location
+ */
+export const createCreateLocationApiV1LocationsPost = <
+	TError = HTTPValidationError,
+	TContext = unknown,
+>(
+	options?: {
+		mutation?: CreateMutationOptions<
+			Awaited<ReturnType<typeof createLocationApiV1LocationsPost>>,
+			TError,
+			{ data: LocationCreate },
+			TContext
+		>;
+	},
+	queryClient?: QueryClient,
+): CreateMutationResult<
+	Awaited<ReturnType<typeof createLocationApiV1LocationsPost>>,
+	TError,
+	{ data: LocationCreate },
+	TContext
+> => {
+	const mutationOptions =
+		getCreateLocationApiV1LocationsPostMutationOptions(options);
+
+	return createMutation(mutationOptions, queryClient);
+};
+
+/**
+ * Get a specific location by ID.
+ * @summary Get Location
+ */
+export const getLocationApiV1LocationsLocationIdGet = (
+	locationId: string,
+	signal?: AbortSignal,
+) => {
+	return clientWrapper<Location>({
+		url: `/api/v1/locations/${locationId}`,
+		method: "GET",
+		signal,
+	});
+};
+
+export const getGetLocationApiV1LocationsLocationIdGetQueryKey = (
+	locationId: string,
+) => {
+	return [`/api/v1/locations/${locationId}`] as const;
+};
+
+export const getGetLocationApiV1LocationsLocationIdGetQueryOptions = <
+	TData = Awaited<ReturnType<typeof getLocationApiV1LocationsLocationIdGet>>,
+	TError = HTTPValidationError,
+>(
+	locationId: string,
+	options?: {
+		query?: Partial<
+			CreateQueryOptions<
+				Awaited<ReturnType<typeof getLocationApiV1LocationsLocationIdGet>>,
+				TError,
+				TData
+			>
+		>;
+	},
+) => {
+	const { query: queryOptions } = options ?? {};
+
+	const queryKey =
+		queryOptions?.queryKey ??
+		getGetLocationApiV1LocationsLocationIdGetQueryKey(locationId);
+
+	const queryFn: QueryFunction<
+		Awaited<ReturnType<typeof getLocationApiV1LocationsLocationIdGet>>
+	> = ({ signal }) =>
+		getLocationApiV1LocationsLocationIdGet(locationId, signal);
+
+	return {
+		queryKey,
+		queryFn,
+		enabled: !!locationId,
+		...queryOptions,
+	} as CreateQueryOptions<
+		Awaited<ReturnType<typeof getLocationApiV1LocationsLocationIdGet>>,
+		TError,
+		TData
+	> & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type GetLocationApiV1LocationsLocationIdGetQueryResult = NonNullable<
+	Awaited<ReturnType<typeof getLocationApiV1LocationsLocationIdGet>>
+>;
+export type GetLocationApiV1LocationsLocationIdGetQueryError =
+	HTTPValidationError;
+
+/**
+ * @summary Get Location
+ */
+
+export function createGetLocationApiV1LocationsLocationIdGet<
+	TData = Awaited<ReturnType<typeof getLocationApiV1LocationsLocationIdGet>>,
+	TError = HTTPValidationError,
+>(
+	locationId: string,
+	options?: {
+		query?: Partial<
+			CreateQueryOptions<
+				Awaited<ReturnType<typeof getLocationApiV1LocationsLocationIdGet>>,
+				TError,
+				TData
+			>
+		>;
+	},
+	queryClient?: QueryClient,
+): CreateQueryResult<TData, TError> & {
+	queryKey: DataTag<QueryKey, TData, TError>;
+} {
+	const queryOptions = getGetLocationApiV1LocationsLocationIdGetQueryOptions(
+		locationId,
+		options,
+	);
+
+	const query = createQuery(queryOptions, queryClient) as CreateQueryResult<
+		TData,
+		TError
+	> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+	query.queryKey = queryOptions.queryKey;
+
+	return query;
+}
+
+/**
+ * Get work orders with optional filtering and pagination.
+ * @summary Get Work Orders
+ */
+export const getWorkOrdersApiV1WorkOrdersGet = (
+	params?: GetWorkOrdersApiV1WorkOrdersGetParams,
+	signal?: AbortSignal,
+) => {
+	return clientWrapper<WorkOrdersResponse>({
+		url: "/api/v1/work-orders",
+		method: "GET",
+		params,
+		signal,
+	});
+};
+
+export const getGetWorkOrdersApiV1WorkOrdersGetQueryKey = (
+	params?: GetWorkOrdersApiV1WorkOrdersGetParams,
+) => {
+	return ["/api/v1/work-orders", ...(params ? [params] : [])] as const;
+};
+
+export const getGetWorkOrdersApiV1WorkOrdersGetQueryOptions = <
+	TData = Awaited<ReturnType<typeof getWorkOrdersApiV1WorkOrdersGet>>,
+	TError = HTTPValidationError,
+>(
+	params?: GetWorkOrdersApiV1WorkOrdersGetParams,
+	options?: {
+		query?: Partial<
+			CreateQueryOptions<
+				Awaited<ReturnType<typeof getWorkOrdersApiV1WorkOrdersGet>>,
+				TError,
+				TData
+			>
+		>;
+	},
+) => {
+	const { query: queryOptions } = options ?? {};
+
+	const queryKey =
+		queryOptions?.queryKey ??
+		getGetWorkOrdersApiV1WorkOrdersGetQueryKey(params);
+
+	const queryFn: QueryFunction<
+		Awaited<ReturnType<typeof getWorkOrdersApiV1WorkOrdersGet>>
+	> = ({ signal }) => getWorkOrdersApiV1WorkOrdersGet(params, signal);
+
+	return { queryKey, queryFn, ...queryOptions } as CreateQueryOptions<
+		Awaited<ReturnType<typeof getWorkOrdersApiV1WorkOrdersGet>>,
+		TError,
+		TData
+	> & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type GetWorkOrdersApiV1WorkOrdersGetQueryResult = NonNullable<
+	Awaited<ReturnType<typeof getWorkOrdersApiV1WorkOrdersGet>>
+>;
+export type GetWorkOrdersApiV1WorkOrdersGetQueryError = HTTPValidationError;
+
+/**
+ * @summary Get Work Orders
+ */
+
+export function createGetWorkOrdersApiV1WorkOrdersGet<
+	TData = Awaited<ReturnType<typeof getWorkOrdersApiV1WorkOrdersGet>>,
+	TError = HTTPValidationError,
+>(
+	params?: GetWorkOrdersApiV1WorkOrdersGetParams,
+	options?: {
+		query?: Partial<
+			CreateQueryOptions<
+				Awaited<ReturnType<typeof getWorkOrdersApiV1WorkOrdersGet>>,
+				TError,
+				TData
+			>
+		>;
+	},
+	queryClient?: QueryClient,
+): CreateQueryResult<TData, TError> & {
+	queryKey: DataTag<QueryKey, TData, TError>;
+} {
+	const queryOptions = getGetWorkOrdersApiV1WorkOrdersGetQueryOptions(
+		params,
+		options,
+	);
+
+	const query = createQuery(queryOptions, queryClient) as CreateQueryResult<
+		TData,
+		TError
+	> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+	query.queryKey = queryOptions.queryKey;
+
+	return query;
+}
+
+/**
+ * Create a new work order.
+ * @summary Create Work Order
+ */
+export const createWorkOrderApiV1WorkOrdersPost = (
+	workOrderCreate: WorkOrderCreate,
+	signal?: AbortSignal,
+) => {
+	return clientWrapper<WorkOrder>({
+		url: "/api/v1/work-orders",
+		method: "POST",
+		headers: { "Content-Type": "application/json" },
+		data: workOrderCreate,
+		signal,
+	});
+};
+
+export const getCreateWorkOrderApiV1WorkOrdersPostMutationOptions = <
+	TError = HTTPValidationError,
+	TContext = unknown,
+>(options?: {
+	mutation?: CreateMutationOptions<
+		Awaited<ReturnType<typeof createWorkOrderApiV1WorkOrdersPost>>,
+		TError,
+		{ data: WorkOrderCreate },
+		TContext
+	>;
+}): CreateMutationOptions<
+	Awaited<ReturnType<typeof createWorkOrderApiV1WorkOrdersPost>>,
+	TError,
+	{ data: WorkOrderCreate },
+	TContext
+> => {
+	const mutationKey = ["createWorkOrderApiV1WorkOrdersPost"];
+	const { mutation: mutationOptions } = options
+		? options.mutation &&
+			"mutationKey" in options.mutation &&
+			options.mutation.mutationKey
+			? options
+			: { ...options, mutation: { ...options.mutation, mutationKey } }
+		: { mutation: { mutationKey } };
+
+	const mutationFn: MutationFunction<
+		Awaited<ReturnType<typeof createWorkOrderApiV1WorkOrdersPost>>,
+		{ data: WorkOrderCreate }
+	> = (props) => {
+		const { data } = props ?? {};
+
+		return createWorkOrderApiV1WorkOrdersPost(data);
+	};
+
+	return { mutationFn, ...mutationOptions };
+};
+
+export type CreateWorkOrderApiV1WorkOrdersPostMutationResult = NonNullable<
+	Awaited<ReturnType<typeof createWorkOrderApiV1WorkOrdersPost>>
+>;
+export type CreateWorkOrderApiV1WorkOrdersPostMutationBody = WorkOrderCreate;
+export type CreateWorkOrderApiV1WorkOrdersPostMutationError =
+	HTTPValidationError;
+
+/**
+ * @summary Create Work Order
+ */
+export const createCreateWorkOrderApiV1WorkOrdersPost = <
+	TError = HTTPValidationError,
+	TContext = unknown,
+>(
+	options?: {
+		mutation?: CreateMutationOptions<
+			Awaited<ReturnType<typeof createWorkOrderApiV1WorkOrdersPost>>,
+			TError,
+			{ data: WorkOrderCreate },
+			TContext
+		>;
+	},
+	queryClient?: QueryClient,
+): CreateMutationResult<
+	Awaited<ReturnType<typeof createWorkOrderApiV1WorkOrdersPost>>,
+	TError,
+	{ data: WorkOrderCreate },
+	TContext
+> => {
+	const mutationOptions =
+		getCreateWorkOrderApiV1WorkOrdersPostMutationOptions(options);
+
+	return createMutation(mutationOptions, queryClient);
+};
+
+/**
+ * Get a specific work order by ID.
+ * @summary Get Work Order
+ */
+export const getWorkOrderApiV1WorkOrdersWorkOrderIdGet = (
+	workOrderId: string,
+	signal?: AbortSignal,
+) => {
+	return clientWrapper<WorkOrder>({
+		url: `/api/v1/work-orders/${workOrderId}`,
+		method: "GET",
+		signal,
+	});
+};
+
+export const getGetWorkOrderApiV1WorkOrdersWorkOrderIdGetQueryKey = (
+	workOrderId: string,
+) => {
+	return [`/api/v1/work-orders/${workOrderId}`] as const;
+};
+
+export const getGetWorkOrderApiV1WorkOrdersWorkOrderIdGetQueryOptions = <
+	TData = Awaited<ReturnType<typeof getWorkOrderApiV1WorkOrdersWorkOrderIdGet>>,
+	TError = HTTPValidationError,
+>(
+	workOrderId: string,
+	options?: {
+		query?: Partial<
+			CreateQueryOptions<
+				Awaited<ReturnType<typeof getWorkOrderApiV1WorkOrdersWorkOrderIdGet>>,
+				TError,
+				TData
+			>
+		>;
+	},
+) => {
+	const { query: queryOptions } = options ?? {};
+
+	const queryKey =
+		queryOptions?.queryKey ??
+		getGetWorkOrderApiV1WorkOrdersWorkOrderIdGetQueryKey(workOrderId);
+
+	const queryFn: QueryFunction<
+		Awaited<ReturnType<typeof getWorkOrderApiV1WorkOrdersWorkOrderIdGet>>
+	> = ({ signal }) =>
+		getWorkOrderApiV1WorkOrdersWorkOrderIdGet(workOrderId, signal);
+
+	return {
+		queryKey,
+		queryFn,
+		enabled: !!workOrderId,
+		...queryOptions,
+	} as CreateQueryOptions<
+		Awaited<ReturnType<typeof getWorkOrderApiV1WorkOrdersWorkOrderIdGet>>,
+		TError,
+		TData
+	> & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type GetWorkOrderApiV1WorkOrdersWorkOrderIdGetQueryResult = NonNullable<
+	Awaited<ReturnType<typeof getWorkOrderApiV1WorkOrdersWorkOrderIdGet>>
+>;
+export type GetWorkOrderApiV1WorkOrdersWorkOrderIdGetQueryError =
+	HTTPValidationError;
+
+/**
+ * @summary Get Work Order
+ */
+
+export function createGetWorkOrderApiV1WorkOrdersWorkOrderIdGet<
+	TData = Awaited<ReturnType<typeof getWorkOrderApiV1WorkOrdersWorkOrderIdGet>>,
+	TError = HTTPValidationError,
+>(
+	workOrderId: string,
+	options?: {
+		query?: Partial<
+			CreateQueryOptions<
+				Awaited<ReturnType<typeof getWorkOrderApiV1WorkOrdersWorkOrderIdGet>>,
+				TError,
+				TData
+			>
+		>;
+	},
+	queryClient?: QueryClient,
+): CreateQueryResult<TData, TError> & {
+	queryKey: DataTag<QueryKey, TData, TError>;
+} {
+	const queryOptions = getGetWorkOrderApiV1WorkOrdersWorkOrderIdGetQueryOptions(
+		workOrderId,
+		options,
+	);
+
+	const query = createQuery(queryOptions, queryClient) as CreateQueryResult<
+		TData,
+		TError
+	> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+	query.queryKey = queryOptions.queryKey;
+
+	return query;
+}
+
+/**
+ * Update a work order.
+ * @summary Update Work Order
+ */
+export const updateWorkOrderApiV1WorkOrdersWorkOrderIdPut = (
+	workOrderId: string,
+	workOrderUpdate: WorkOrderUpdate,
+) => {
+	return clientWrapper<WorkOrder>({
+		url: `/api/v1/work-orders/${workOrderId}`,
+		method: "PUT",
+		headers: { "Content-Type": "application/json" },
+		data: workOrderUpdate,
+	});
+};
+
+export const getUpdateWorkOrderApiV1WorkOrdersWorkOrderIdPutMutationOptions = <
+	TError = HTTPValidationError,
+	TContext = unknown,
+>(options?: {
+	mutation?: CreateMutationOptions<
+		Awaited<ReturnType<typeof updateWorkOrderApiV1WorkOrdersWorkOrderIdPut>>,
+		TError,
+		{ workOrderId: string; data: WorkOrderUpdate },
+		TContext
+	>;
+}): CreateMutationOptions<
+	Awaited<ReturnType<typeof updateWorkOrderApiV1WorkOrdersWorkOrderIdPut>>,
+	TError,
+	{ workOrderId: string; data: WorkOrderUpdate },
+	TContext
+> => {
+	const mutationKey = ["updateWorkOrderApiV1WorkOrdersWorkOrderIdPut"];
+	const { mutation: mutationOptions } = options
+		? options.mutation &&
+			"mutationKey" in options.mutation &&
+			options.mutation.mutationKey
+			? options
+			: { ...options, mutation: { ...options.mutation, mutationKey } }
+		: { mutation: { mutationKey } };
+
+	const mutationFn: MutationFunction<
+		Awaited<ReturnType<typeof updateWorkOrderApiV1WorkOrdersWorkOrderIdPut>>,
+		{ workOrderId: string; data: WorkOrderUpdate }
+	> = (props) => {
+		const { workOrderId, data } = props ?? {};
+
+		return updateWorkOrderApiV1WorkOrdersWorkOrderIdPut(workOrderId, data);
+	};
+
+	return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateWorkOrderApiV1WorkOrdersWorkOrderIdPutMutationResult =
+	NonNullable<
+		Awaited<ReturnType<typeof updateWorkOrderApiV1WorkOrdersWorkOrderIdPut>>
+	>;
+export type UpdateWorkOrderApiV1WorkOrdersWorkOrderIdPutMutationBody =
+	WorkOrderUpdate;
+export type UpdateWorkOrderApiV1WorkOrdersWorkOrderIdPutMutationError =
+	HTTPValidationError;
+
+/**
+ * @summary Update Work Order
+ */
+export const createUpdateWorkOrderApiV1WorkOrdersWorkOrderIdPut = <
+	TError = HTTPValidationError,
+	TContext = unknown,
+>(
+	options?: {
+		mutation?: CreateMutationOptions<
+			Awaited<ReturnType<typeof updateWorkOrderApiV1WorkOrdersWorkOrderIdPut>>,
+			TError,
+			{ workOrderId: string; data: WorkOrderUpdate },
+			TContext
+		>;
+	},
+	queryClient?: QueryClient,
+): CreateMutationResult<
+	Awaited<ReturnType<typeof updateWorkOrderApiV1WorkOrdersWorkOrderIdPut>>,
+	TError,
+	{ workOrderId: string; data: WorkOrderUpdate },
+	TContext
+> => {
+	const mutationOptions =
+		getUpdateWorkOrderApiV1WorkOrdersWorkOrderIdPutMutationOptions(options);
+
+	return createMutation(mutationOptions, queryClient);
+};
+
+/**
+ * Delete a work order.
+ * @summary Delete Work Order
+ */
+export const deleteWorkOrderApiV1WorkOrdersWorkOrderIdDelete = (
+	workOrderId: string,
+) => {
+	return clientWrapper<void>({
+		url: `/api/v1/work-orders/${workOrderId}`,
+		method: "DELETE",
+	});
+};
+
+export const getDeleteWorkOrderApiV1WorkOrdersWorkOrderIdDeleteMutationOptions =
+	<TError = HTTPValidationError, TContext = unknown>(options?: {
+		mutation?: CreateMutationOptions<
+			Awaited<
+				ReturnType<typeof deleteWorkOrderApiV1WorkOrdersWorkOrderIdDelete>
+			>,
+			TError,
+			{ workOrderId: string },
+			TContext
+		>;
+	}): CreateMutationOptions<
+		Awaited<ReturnType<typeof deleteWorkOrderApiV1WorkOrdersWorkOrderIdDelete>>,
+		TError,
+		{ workOrderId: string },
+		TContext
+	> => {
+		const mutationKey = ["deleteWorkOrderApiV1WorkOrdersWorkOrderIdDelete"];
+		const { mutation: mutationOptions } = options
+			? options.mutation &&
+				"mutationKey" in options.mutation &&
+				options.mutation.mutationKey
+				? options
+				: { ...options, mutation: { ...options.mutation, mutationKey } }
+			: { mutation: { mutationKey } };
+
+		const mutationFn: MutationFunction<
+			Awaited<
+				ReturnType<typeof deleteWorkOrderApiV1WorkOrdersWorkOrderIdDelete>
+			>,
+			{ workOrderId: string }
+		> = (props) => {
+			const { workOrderId } = props ?? {};
+
+			return deleteWorkOrderApiV1WorkOrdersWorkOrderIdDelete(workOrderId);
+		};
+
+		return { mutationFn, ...mutationOptions };
+	};
+
+export type DeleteWorkOrderApiV1WorkOrdersWorkOrderIdDeleteMutationResult =
+	NonNullable<
+		Awaited<ReturnType<typeof deleteWorkOrderApiV1WorkOrdersWorkOrderIdDelete>>
+	>;
+
+export type DeleteWorkOrderApiV1WorkOrdersWorkOrderIdDeleteMutationError =
+	HTTPValidationError;
+
+/**
+ * @summary Delete Work Order
+ */
+export const createDeleteWorkOrderApiV1WorkOrdersWorkOrderIdDelete = <
+	TError = HTTPValidationError,
+	TContext = unknown,
+>(
+	options?: {
+		mutation?: CreateMutationOptions<
+			Awaited<
+				ReturnType<typeof deleteWorkOrderApiV1WorkOrdersWorkOrderIdDelete>
+			>,
+			TError,
+			{ workOrderId: string },
+			TContext
+		>;
+	},
+	queryClient?: QueryClient,
+): CreateMutationResult<
+	Awaited<ReturnType<typeof deleteWorkOrderApiV1WorkOrdersWorkOrderIdDelete>>,
+	TError,
+	{ workOrderId: string },
+	TContext
+> => {
+	const mutationOptions =
+		getDeleteWorkOrderApiV1WorkOrdersWorkOrderIdDeleteMutationOptions(options);
 
 	return createMutation(mutationOptions, queryClient);
 };

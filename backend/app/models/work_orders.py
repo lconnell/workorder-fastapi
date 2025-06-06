@@ -18,23 +18,25 @@ class WorkOrderPriority(str, Enum):
 
 
 class Location(BaseModel):
-    id: int
+    id: str  # UUID as string
     name: str
     address: str | None = None
     city: str | None = None
     state_province: str | None = None
     postal_code: str | None = None
     country: str | None = None
+    latitude: float | None = None
+    longitude: float | None = None
 
 
 class WorkOrder(BaseModel):
-    id: int
+    id: str  # UUID as string
     title: str
     description: str | None = None
     status: WorkOrderStatus
     priority: WorkOrderPriority
     location: Location | None = None
-    location_id: int | None = None
+    location_id: str | None = None  # UUID as string for location reference
     assigned_to_user_id: str | None = None
     created_by_user_id: str
     created_at: str
@@ -46,7 +48,7 @@ class WorkOrderCreate(BaseModel):
     description: str | None = None
     status: WorkOrderStatus = WorkOrderStatus.OPEN
     priority: WorkOrderPriority = WorkOrderPriority.MEDIUM
-    location_id: int | None = None
+    location_id: str | None = None  # UUID as string
     assigned_to_user_id: str | None = None
 
 
@@ -55,7 +57,7 @@ class WorkOrderUpdate(BaseModel):
     description: str | None = None
     status: WorkOrderStatus | None = None
     priority: WorkOrderPriority | None = None
-    location_id: int | None = None
+    location_id: str | None = None  # UUID as string
     assigned_to_user_id: str | None = None
 
 

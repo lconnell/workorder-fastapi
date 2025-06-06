@@ -10,7 +10,27 @@ This is a full-stack work order management system with:
 
 The system manages work orders with secure user authentication and role-based access control.
 
-## Development Guidance
+## Code Quality & Architecture
+
+### Shared Utilities (Follow DRY Principles)
+- **Badge Styling**: Use `/frontend/src/lib/utils/badge-styles.ts` for consistent badge colors
+  - `getModalStatusBadgeClasses()` and `getModalPriorityBadgeClasses()` for modal views
+  - `getTableStatusBadgeClasses()` and `getTablePriorityBadgeClasses()` for table displays
+- **Date Formatting**: Use `/frontend/src/lib/utils/date-formatter.ts` for all date displays
+  - `formatDate()` for short dates (e.g., "Dec 6, 2024")
+  - `formatDateTime()` for full timestamps
+- **Error Handling**: Use `/backend/app/utils/error_handlers.py` for standardized API errors
+  - `handle_supabase_error()` for database operation errors
+  - `validate_supabase_response()` for response validation
+  - `create_not_found_error()` and `create_validation_error()` for common errors
+
+### Development Principles
+- **DRY Principle**: Always check for existing utilities before creating new ones
+- **Type Safety**: Use shared TypeScript interfaces from `/frontend/src/lib/types/`
+- **Consistent Styling**: Use established badge colors and spacing patterns
+- **Error Handling**: Follow standardized error response patterns in backend
+- **Performance**: Use TanStack Query for caching and invalidation
+- **UI Consistency**: Maintain professional color schemes (subtle backgrounds, darker text)
 
 ### Workflow Principles
 - Use Taskfile.yml for executing commands, especially for validating code
@@ -22,6 +42,15 @@ The system manages work orders with secure user authentication and role-based ac
 - Use context7 MCP server for Svelte5, Supabase and FastAPI documentation
 - Use supabase MCP server for Supabase related actions
 - When writing frontend/typescript code, take into consideration that we are building a progressive web app that can be used on web and mobile
+
+### Database Management
+- All database schema changes must be done through Supabase migrations in `supabase/migrations/`
+- Use `task db-migration-new -- "migration_name"` to create new migrations
+- Deploy migrations with `task db-migration-push`
+- Generate updated TypeScript types with `task db-types` after schema changes
+- GitHub Actions automatically deploy migrations when pushed to main branch
+- Use UUIDs for all primary keys (already implemented)
+- Locations table includes geocoding cache (lat/lng) for performance
 
 ## Development Setup
 
@@ -60,6 +89,19 @@ task start-test          # Start servers and test integration
 task stop-servers        # Stop all development servers
 ```
 
+### Database Migration Tasks
+```bash
+# Migration Management
+task db-migration-new -- "migration_name"  # Create new migration
+task db-migration-status                   # Check migration status
+task db-migration-push                     # Deploy to production
+task db-migration-reset                    # Reset local DB (dev only)
+
+# Type Generation
+task db-types            # Generate TypeScript types from database
+task db-link             # Link to remote Supabase project
+```
+
 ## Project Structure
 
 The project follows this structure:
@@ -85,8 +127,10 @@ workorder-fastapi/
 │   │   └── routes/       # SvelteKit pages and layouts
 │   ├── package.json      # Frontend dependencies
 │   └── svelte.config.js  # SvelteKit configuration
-├── database/             # Database schema and sample data
-│   ├── create_tables.sql # Database table definitions
-│   └── sample_data.sql   # Sample data for development
+├── supabase/             # Supabase configuration and migrations
+│   ├── migrations/       # Database migration files (UUID migration included)
+│   └── config.toml       # Supabase project configuration
+├── .github/              # GitHub Actions workflows
+│   └── workflows/        # CI/CD pipelines including migration deployment
 └── Taskfile.yml          # Task automation configuration
 ```

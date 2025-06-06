@@ -8,14 +8,19 @@ import type {
 	WorkOrdersResponse,
 } from "$lib/types/work-orders";
 import { createQuery } from "@tanstack/svelte-query";
-import type * as L from "leaflet"; // Added Leaflet type import
-import { onDestroy } from "svelte";
+import type * as L from "leaflet";
+import { onDestroy, tick } from "svelte";
 
 // biome-ignore lint/style/useConst: Svelte 5 bind:this requires let
-let mapContainer = $state<HTMLDivElement | null>(null); // Changed const to let
-let leafletMap: L.Map | null = $state(null); // Typed and made $state
-let leafletLib: typeof L | null = null; // Typed
+let mapContainer = $state<HTMLDivElement | null>(null);
+let leafletMap: L.Map | null = $state(null);
+let leafletLib: typeof L | null = null;
 let isMapReady = $state(false);
+
+const DEFAULT_LAT = 39.8283; // Approx US center
+const DEFAULT_LON = -98.5795;
+const DEFAULT_ZOOM_NO_ORDERS = 4;
+const DEFAULT_ZOOM_SINGLE_ORDER = 13;
 
 const geocodingService = GeocodingService.getInstance();
 
@@ -85,8 +90,16 @@ async function loadLeaflet() {
 }
 
 // Geocode and display work orders
-async function displayWorkOrders() {
-	if (!mappableWorkOrders.length || !mapContainer) return;
+async function displayWorkOrders(
+	currentMapContainer: HTMLDivElement,
+	currentMappableOrders: WorkOrder[],
+) {
+	if (!currentMappableOrders.length || !currentMapContainer) {
+		console.warn(
+			"displayWorkOrders called with invalid container or empty orders.",
+		);
+		return;
+	}
 
 	try {
 		// Load Leaflet if needed
@@ -96,9 +109,17 @@ async function displayWorkOrders() {
 			return;
 		}
 
+		// Check if container or data became unavailable during await
+		if (!currentMapContainer || !currentMappableOrders.length) {
+			console.warn(
+				"Map container or work orders became unavailable (during Leaflet load). Aborting displayWorkOrders.",
+			);
+			return;
+		}
+
 		// Geocode unique addresses
 		const uniqueAddresses = new Map<string, WorkOrder[]>();
-		for (const wo of mappableWorkOrders) {
+		for (const wo of currentMappableOrders) {
 			// Build address from available fields
 			const addressParts = [
 				wo.location?.address,
@@ -122,6 +143,21 @@ async function displayWorkOrders() {
 		const geocodedResults = await geocodingService.geocodeMultiple([
 			...uniqueAddresses.keys(),
 		]);
+
+		// Check if container or data became unavailable during await
+		if (!currentMapContainer || !currentMappableOrders.length) {
+			console.warn(
+				"Map container or work orders became unavailable (during geocoding). Aborting displayWorkOrders.",
+			);
+			if (leafletMap && !currentMapContainer) {
+				console.log(
+					"Removing stale map instance as container is gone after geocoding.",
+				);
+				leafletMap.remove();
+				leafletMap = null;
+			}
+			return;
+		}
 
 		// Build geocoded locations array
 		const geocodedLocations: GeocodedLocation[] = [];
@@ -148,24 +184,65 @@ async function displayWorkOrders() {
 			leafletMap = null;
 		}
 
-		// Initialize new map
-		const bounds = L.latLngBounds(
-			geocodedLocations.map((loc: GeocodedLocation) => [loc.lat, loc.lon]),
-		);
-
-		leafletMap = L.map(mapContainer).fitBounds(bounds, { padding: [50, 50] });
-
-		// Force map to recalculate size
-		leafletMap.invalidateSize();
+		// Final check for map container AND work order data before initializing map
+		// This is critical as reactive updates might nullify mapContainer or empty mappableWorkOrders synchronously.
+		if (!currentMapContainer || !currentMappableOrders.length) {
+			console.error(
+				"CRITICAL: Map container or work orders became invalid just before L.map() call (parameters). Aborting map initialization.",
+			);
+			return;
+		}
+		// Initialize the map instance FIRST
+		leafletMap = L.map(currentMapContainer);
 
 		// Add tile layer
 		L.tileLayer(MAP_TILE_URL, {
 			attribution: MAP_ATTRIBUTION,
 		}).addTo(leafletMap);
 
-		// Add markers
-		for (const loc of geocodedLocations) {
+		// Filter for valid geocoded points
+		const validGeocodedLocations = geocodedLocations.filter(
+			(loc) => Number.isFinite(loc.lat) && Number.isFinite(loc.lon),
+		);
+
+		if (validGeocodedLocations.length === 0) {
+			console.warn(
+				"No valid geocoded locations to display. Setting default view.",
+			);
+			leafletMap.setView([DEFAULT_LAT, DEFAULT_LON], DEFAULT_ZOOM_NO_ORDERS);
+		} else if (validGeocodedLocations.length === 1) {
+			const singleLoc = validGeocodedLocations[0];
+			leafletMap.setView(
+				[singleLoc.lat, singleLoc.lon],
+				DEFAULT_ZOOM_SINGLE_ORDER,
+			);
+			// Add marker for the single valid location
 			const popupContent = `
+				<div class="p-2">
+					<strong>${singleLoc.workOrderCount} work order${singleLoc.workOrderCount > 1 ? "s" : ""}</strong><br>
+					<small>${singleLoc.address}</small>
+					<ul class="mt-2 text-xs">
+						${singleLoc.workOrders
+							.slice(0, 3)
+							.map((wo) => `<li>• ${wo.title}</li>`)
+							.join("")}
+						${singleLoc.workOrders.length > 3 ? `<li class="opacity-60">+${singleLoc.workOrders.length - 3} more</li>` : ""}
+					</ul>
+				</div>
+			`;
+			L.marker([singleLoc.lat, singleLoc.lon])
+				.addTo(leafletMap)
+				.bindPopup(popupContent);
+		} else {
+			// More than one valid location, fit bounds
+			const bounds = L.latLngBounds(
+				validGeocodedLocations.map((loc) => [loc.lat, loc.lon]),
+			);
+			leafletMap.fitBounds(bounds, { padding: [50, 50], maxZoom: 16 });
+
+			// Add markers for all valid locations
+			for (const loc of validGeocodedLocations) {
+				const popupContent = `
 					<div class="p-2">
 						<strong>${loc.workOrderCount} work order${loc.workOrderCount > 1 ? "s" : ""}</strong><br>
 						<small>${loc.address}</small>
@@ -179,9 +256,19 @@ async function displayWorkOrders() {
 					</div>
 				`;
 
-			L.marker([loc.lat, loc.lon]).addTo(leafletMap).bindPopup(popupContent);
-		}
+				L.marker([loc.lat, loc.lon]).addTo(leafletMap).bindPopup(popupContent);
+			}
+		} // Closes the if/else if/else for validGeocodedLocations
 
+		// Ensure map size is correct after view operations, common to all paths
+		if (leafletMap) {
+			// leafletMap should be initialized if any path was successful
+			await tick(); // Wait for DOM updates
+			if (leafletMap) {
+				// Check again, map might have been destroyed during the tick
+				leafletMap.invalidateSize();
+			}
+		}
 		isMapReady = true;
 	} catch (error) {
 		console.error("Failed to display work orders on map:", error);
@@ -190,8 +277,21 @@ async function displayWorkOrders() {
 
 // Initialize map when container and data are both ready
 $effect(() => {
-	if (mappableWorkOrders.length > 0 && mapContainer) {
-		displayWorkOrders();
+	// Capture current reactive values for this effect run
+	const currentOrders = mappableWorkOrders;
+	const currentContainer = mapContainer;
+
+	if (currentOrders.length > 0 && currentContainer) {
+		// Conditions met to display or update the map
+		displayWorkOrders(currentContainer, currentOrders);
+	} else {
+		// Conditions to display map are NOT met. If map exists, remove it.
+		if (leafletMap) {
+			console.log("Conditions to display map no longer met. Removing map.");
+			leafletMap.remove();
+			leafletMap = null;
+			isMapReady = false; // Reset map ready state
+		}
 	}
 });
 
@@ -203,42 +303,35 @@ onDestroy(() => {
 });
 </script>
 
-<div class="space-y-4">
+<div class="w-full h-full flex flex-col flex-grow">
 	{#if $workOrdersQuery.isLoading}
-		<div class="text-center">
-			<span class="loading loading-spinner loading-md"></span>
-			<p class="text-sm opacity-70 mt-2">Loading work orders...</p>
+		<div class="flex-grow flex flex-col items-center justify-center">
+			<span class="loading loading-spinner loading-lg"></span>
+			<p class="text-base-content/70 mt-4">Loading map data...</p>
 		</div>
 	{:else if $workOrdersQuery.error}
-		<div class="alert alert-error">
-			<svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
-				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
-			</svg>
-			<span class="text-sm">Failed to load work orders</span>
+		<div class="flex-grow flex flex-col items-center justify-center">
+			<div class="alert alert-error max-w-md">
+				<svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+				<span>Failed to load work orders for the map.</span>
+			</div>
 		</div>
 	{:else if mappableWorkOrders.length === 0}
-		<div class="text-center text-base-content/60">
-			<p>No active work orders with locations to display</p>
+		<div class="flex-grow flex flex-col items-center justify-center text-center p-4">
+			<svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 text-base-content/30 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+			<p class="text-lg font-medium text-base-content/70">No Active Work Orders to Display</p>
+			<p class="text-sm text-base-content/50">There are currently no open or in-progress work orders with valid locations.</p>
 		</div>
 	{:else}
-		<div class="text-center">
-			<p class="text-sm opacity-70">
-				{mappableWorkOrders.length} active work order{mappableWorkOrders.length !== 1 ? 's' : ''}
-				{#if isMapReady}
-					at {new Set(mappableWorkOrders.map(wo => wo.location?.address)).size} location{new Set(mappableWorkOrders.map(wo => wo.location?.address)).size !== 1 ? 's' : ''}
-				{/if}
-			</p>
+    <!-- Map Info Bar -->
+    <div class="bg-base-200/80 backdrop-blur-sm p-2 rounded-t-lg shadow text-center text-sm text-base-content/90 mb-[-1px] z-10 relative">
+      Displaying <span class="font-semibold text-primary">{mappableWorkOrders.length}</span> active work order{mappableWorkOrders.length !== 1 ? 's' : ''}
+      {#if isMapReady}
+        at <span class="font-semibold text-secondary">{new Set(mappableWorkOrders.map(wo => wo.location?.address)).size}</span> unique location{new Set(mappableWorkOrders.map(wo => wo.location?.address)).size !== 1 ? 's' : ''}
+      {/if}
+    </div>
+		<div class="flex-grow w-full rounded-b-xl bg-base-200 border border-base-300 relative overflow-hidden">
+			<div bind:this={mapContainer} class="absolute inset-0 w-full h-full" id="work-orders-map"></div>
 		</div>
 	{/if}
-
-	<div class="h-96 w-full rounded-xl bg-base-200 border border-base-300 relative">
-		<div bind:this={mapContainer} class="absolute inset-0 rounded-xl" id="work-orders-map" style="height: 384px; width: 100%;"></div>
-		{#if mappableWorkOrders.length === 0 && !$workOrdersQuery.isLoading}
-			<div class="absolute inset-0 flex items-center justify-center pointer-events-none">
-				<span class="text-base-content/60">
-					No active work orders with locations to display
-				</span>
-			</div>
-		{/if}
-	</div>
 </div>
