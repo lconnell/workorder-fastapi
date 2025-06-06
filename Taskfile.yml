@@ -1,0 +1,476 @@
+version: '3'
+
+vars:
+  PYTHON: python3.12
+  UV: uv
+  BACKEND_DIR: backend
+  FRONTEND_DIR: frontend
+  VENV: .venv
+  APP_MODULE: app.main:app
+
+env:
+  PYTHONPATH: "{{.BACKEND_DIR}}"
+
+tasks:
+  default:
+    desc: Show available tasks
+    cmds:
+      - task --list
+
+  # Setup tasks
+  backend-setup:
+    desc: Complete backend setup (install uv, create venv, install deps, setup pre-commit)
+    cmds:
+      - task: install-uv
+      - task: backend-install
+      - task: backend-setup-pre-commit
+      - task: backend-create-env
+
+  install-uv:
+    desc: Install uv package manager
+    cmds:
+      - command -v uv || brew install uv # curl -LsSf https://astral.sh/uv/install.sh | sh
+    status:
+      - command -v uv
+
+  venv:
+    desc: Create virtual environment with Python
+    dir: '{{.BACKEND_DIR}}'
+    cmds:
+      - '{{.UV}} venv --python $(which {{.PYTHON}})'
+    status:
+      - test -d {{.VENV}}
+
+  backend-install:
+    desc: Install all backend dependencies (including dev)
+    deps: [venv]
+    dir: '{{.BACKEND_DIR}}'
+    cmds:
+      - 'uv pip install -e ".[dev]"'
+    status:
+      - 'uv pip show fastapi > /dev/null'
+
+  backend-setup-pre-commit:
+    desc: Install pre-commit hooks
+    deps: [backend-install]
+    dir: '{{.BACKEND_DIR}}'
+    cmds:
+      - '{{.UV}} run pre-commit install --config ../.pre-commit-config.yaml'
+
+  backend-create-env:
+    desc: Create backend .env file from example
+    dir: '{{.BACKEND_DIR}}'
+    cmds:
+      - cp -n .env.example .env || true
+      - echo "✅ Backend .env file created. Please update with your credentials."
+    status:
+      - test -f .env
+
+  # Development tasks
+  backend-dev:
+    desc: Run backend development server with auto-reload
+    deps: [backend-install]
+    dir: '{{.BACKEND_DIR}}'
+    cmds:
+      - '{{.UV}} run uvicorn {{.APP_MODULE}} --reload --host 0.0.0.0 --port 8000'
+
+  # Testing tasks
+  backend-test:
+    desc: Run all backend tests
+    deps: [backend-install]
+    dir: '{{.BACKEND_DIR}}'
+    cmds:
+      - '{{.UV}} run pytest'
+
+  backend-test-verbose:
+    desc: Run backend tests with verbose output
+    deps: [backend-install]
+    dir: '{{.BACKEND_DIR}}'
+    cmds:
+      - '{{.UV}} run pytest -v'
+
+  backend-test-cov:
+    desc: Run backend tests with coverage report
+    deps: [backend-install]
+    dir: '{{.BACKEND_DIR}}'
+    cmds:
+      - '{{.UV}} run pytest --cov=app --cov-report=term-missing --cov-report=html'
+
+  backend-test-watch:
+    desc: Run backend tests in watch mode
+    deps: [backend-install]
+    dir: '{{.BACKEND_DIR}}'
+    cmds:
+      - '{{.UV}} run pytest-watch'
+
+  backend-test-specific:
+    desc: Run specific backend test file or function
+    deps: [backend-install]
+    dir: '{{.BACKEND_DIR}}'
+    cmds:
+      - '{{.UV}} run pytest {{.CLI_ARGS}}'
+
+  # Code quality tasks
+  backend-lint:
+    desc: Run all backend linters and formatters
+    deps: [backend-install]
+    cmds:
+      - task: backend-format
+      - task: backend-ruff
+      - task: backend-mypy
+
+  backend-format:
+    desc: Format backend code with black
+    deps: [backend-install]
+    dir: '{{.BACKEND_DIR}}'
+    cmds:
+      - '{{.UV}} run black .'
+
+  backend-format-check:
+    desc: Check backend code formatting without changes
+    deps: [backend-install]
+    dir: '{{.BACKEND_DIR}}'
+    cmds:
+      - '{{.UV}} run black . --check'
+
+  backend-ruff:
+    desc: Run backend ruff linter
+    deps: [backend-install]
+    dir: '{{.BACKEND_DIR}}'
+    cmds:
+      - '{{.UV}} run ruff check .'
+
+  backend-ruff-fix:
+    desc: Run backend ruff linter with auto-fix
+    deps: [backend-install]
+    dir: '{{.BACKEND_DIR}}'
+    cmds:
+      - '{{.UV}} run ruff check . --fix'
+
+  backend-mypy:
+    desc: Run backend type checking
+    deps: [backend-install]
+    dir: '{{.BACKEND_DIR}}'
+    cmds:
+      - '{{.UV}} run mypy .'
+
+  backend-pre-commit:
+    desc: Run pre-commit hooks on all files
+    deps: [backend-install]
+    dir: '{{.BACKEND_DIR}}'
+    cmds:
+      - '{{.UV}} run pre-commit run --all-files'
+
+  # Database tasks
+  frontend-db-types:
+    desc: Generate TypeScript types from Supabase for frontend
+    dir: '{{.FRONTEND_DIR}}'
+    cmds:
+      - echo "📝 Generating TypeScript types from Supabase..."
+      - echo "Note - This requires Supabase CLI. Install with brew install supabase/tap/supabase"
+      - echo "Run - supabase gen types typescript --project-id dymvzlrouqpasfsaitla > src/lib/types/supabase.ts"
+
+  # Docker tasks
+  backend-docker-build:
+    desc: Build backend Docker image
+    dir: '{{.BACKEND_DIR}}'
+    cmds:
+      - docker build -t workorder-api:latest .
+
+  backend-docker-run:
+    desc: Run backend Docker container
+    dir: '{{.BACKEND_DIR}}'
+    cmds:
+      - docker run -p 8000:8000 --env-file .env workorder-api:latest
+
+  # Utility tasks
+  backend-clean:
+    desc: Clean up backend generated files and caches
+    dir: '{{.BACKEND_DIR}}'
+    cmds:
+      - rm -rf .ruff_cache
+      - rm -rf .mypy_cache
+      - rm -rf .pytest_cache
+      - rm -rf htmlcov
+      - rm -rf .coverage
+      - find . -type d -name __pycache__ -exec rm -rf {} +
+      - find . -type f -name "*.pyc" -delete
+
+  backend-update-deps:
+    desc: Update all backend dependencies
+    deps: [backend-install]
+    dir: '{{.BACKEND_DIR}}'
+    cmds:
+      - '{{.UV}} pip install --upgrade -e ".[dev]"'
+
+  backend-check-security:
+    desc: Check backend for security vulnerabilities
+    deps: [backend-install]
+    dir: '{{.BACKEND_DIR}}'
+    cmds:
+      - '{{.UV}} pip install safety'
+      - '{{.UV}} run safety check'
+
+  backend-shell:
+    desc: Open Python shell with backend app context
+    deps: [backend-install]
+    dir: '{{.BACKEND_DIR}}'
+    cmds:
+      - '{{.UV}} run python -c "from app.main import app; import IPython; IPython.embed()"'
+
+  backend-docs:
+    desc: Open backend API documentation in browser
+    cmds:
+      - open http://localhost:8000/docs || xdg-open http://localhost:8000/docs
+
+  # API Testing tasks
+  backend-test-api:
+    desc: Test backend API endpoints are responding
+    cmds:
+      - echo "🔍 Testing backend API endpoints..."
+      - echo "Health endpoint:"
+      - curl -s http://localhost:8000/health | jq . || curl -s http://localhost:8000/health
+      - echo -e "\nAvailable endpoints:"
+      - curl -s http://localhost:8000/openapi.json | jq '.paths | keys' || echo "❌ Backend not running or jq not installed"
+
+  backend-test-auth:
+    desc: Test backend authentication endpoints
+    cmds:
+      - echo "🔐 Testing authentication endpoints..."
+      - echo "Testing invalid credentials (should return error):"
+      - 'curl -s http://localhost:8000/api/v1/auth/signin -X POST -H "Content-Type: application/json" -d ''{"email":"test@example.com","password":"invalid"}'' | jq . || curl -s http://localhost:8000/api/v1/auth/signin -X POST -H "Content-Type: application/json" -d ''{"email":"test@example.com","password":"invalid"}'''
+
+  backend-ping:
+    desc: Quick ping to check if backend is running
+    cmds:
+      - curl -s http://localhost:8000/health > /dev/null && echo "✅ Backend is running on port 8000" || echo "❌ Backend is not responding on port 8000"
+
+  frontend-ping:
+    desc: Quick ping to check if frontend is running
+    cmds:
+      - curl -s http://localhost:5173/ > /dev/null && echo "✅ Frontend is running on port 5173" || echo "❌ Frontend is not responding on port 5173"
+
+  ping-all:
+    desc: Check if both backend and frontend are running
+    cmds:
+      - task: backend-ping
+      - task: frontend-ping
+
+  test-integration:
+    desc: Test backend-frontend integration
+    cmds:
+      - echo "🔗 Testing full-stack integration..."
+      - task: ping-all
+      - echo -e "\nTesting OpenAPI schema fetch:"
+      - curl -s http://localhost:8000/openapi.json > /dev/null && echo "✅ OpenAPI schema accessible" || echo "❌ Cannot fetch OpenAPI schema"
+      - echo -e "\nFrontend environment check:"
+      - curl -s http://localhost:5173/ | grep -q "PUBLIC_API_BASE_URL.*8000" && echo "✅ Frontend configured for backend" || echo "❌ Frontend not properly configured"
+
+  stop-servers:
+    desc: Stop all development servers
+    cmds:
+      - echo "🛑 Stopping development servers..."
+      - pkill -f "uvicorn.*app.main:app" || echo "Backend was not running"
+      - pkill -f "vite.*dev" || echo "Frontend was not running"
+      - echo "✅ Servers stopped"
+
+  # Frontend tasks
+  frontend-setup:
+    desc: Complete frontend setup (install dependencies, create env)
+    cmds:
+      - task: frontend-install
+      - task: frontend-create-env
+
+  frontend-install:
+    desc: Install frontend dependencies
+    dir: '{{.FRONTEND_DIR}}'
+    cmds:
+      - npm install
+    status:
+      - test -d node_modules
+
+  frontend-dev:
+    desc: Run SvelteKit development server
+    deps: [frontend-install]
+    dir: '{{.FRONTEND_DIR}}'
+    dotenv: ['.env']
+    cmds:
+      - npm run dev
+
+  frontend-build:
+    desc: Build SvelteKit for production
+    deps: [frontend-install]
+    dir: '{{.FRONTEND_DIR}}'
+    cmds:
+      - npm run build
+
+  frontend-preview:
+    desc: Preview production build
+    deps: [frontend-build]
+    dir: '{{.FRONTEND_DIR}}'
+    cmds:
+      - npm run preview
+
+  frontend-check:
+    desc: Run SvelteKit type checking
+    deps: [frontend-install]
+    dir: '{{.FRONTEND_DIR}}'
+    cmds:
+      - npm run check
+
+  frontend-lint:
+    desc: Run frontend linting with Biome
+    deps: [frontend-install]
+    dir: '{{.FRONTEND_DIR}}'
+    cmds:
+      - npm run lint
+
+  frontend-format:
+    desc: Format frontend code with Biome
+    deps: [frontend-install]
+    dir: '{{.FRONTEND_DIR}}'
+    cmds:
+      - npm run format
+
+  frontend-clean:
+    desc: Clean up frontend generated files and caches
+    dir: '{{.FRONTEND_DIR}}'
+    cmds:
+      - rm -rf .svelte-kit
+      - rm -rf build
+      - rm -rf dist
+      - rm -rf node_modules/.cache
+
+  frontend-create-env:
+    desc: Create frontend .env file from example
+    dir: '{{.FRONTEND_DIR}}'
+    cmds:
+      - cp -n .env.example .env || true
+      - echo "✅ Frontend .env file created. Please update with your credentials."
+    status:
+      - test -f .env
+
+  # API generation tasks
+  frontend-openapi-generate:
+    desc: Generate OpenAPI schema and TypeScript client
+    deps: [frontend-install, backend-dev]
+    dir: '{{.FRONTEND_DIR}}'
+    cmds:
+      - sleep 3  # Wait for backend to start
+      - npm run openapi:fetch
+      - npm run openapi:generate
+
+  # Git tasks
+  commit:
+    desc: Create a commit with full pre-commit checks (backend and frontend)
+    cmds:
+      - task: check-all
+      - git add -A
+      - git commit
+
+  commit-quick:
+    desc: Create a commit with minimal checks (backend pre-commit only)
+    cmds:
+      - task: backend-pre-commit
+      - git add -A
+      - git commit
+
+  # Combined tasks
+  backend-check-all:
+    desc: Run all backend checks (tests, lint, type-check)
+    cmds:
+      - task: backend-test
+      - task: backend-lint
+
+  frontend-check-all:
+    desc: Run all frontend checks (type-check, lint)
+    cmds:
+      - task: frontend-check
+      - task: frontend-lint
+
+  check-all:
+    desc: Run all checks for both backend and frontend
+    cmds:
+      - task: backend-check-all
+      - task: frontend-check-all
+
+  backend-ci:
+    desc: Run backend CI pipeline locally
+    cmds:
+      - task: backend-clean
+      - task: backend-install
+      - task: backend-check-all
+      - task: backend-test-cov
+
+  ci-all:
+    desc: Run full CI pipeline for both backend and frontend
+    cmds:
+      - task: backend-ci
+      - task: frontend-check-all
+
+  # Full stack development
+  start-all:
+    desc: Run both backend and frontend in development mode
+    cmds:
+      - task backend-dev &
+      - task frontend-dev
+
+  start-test:
+    desc: Start both servers and test integration after startup
+    cmds:
+      - echo "🚀 Starting development servers..."
+      - task backend-dev &
+      - task frontend-dev &
+      - echo "⏳ Waiting for servers to start..."
+      - sleep 5
+      - task: test-integration
+
+  # Full stack setup
+  setup-all:
+    desc: Set up both backend and frontend
+    cmds:
+      - task: backend-setup
+      - task: frontend-setup
+
+  # Convenience aliases for common tasks
+  setup:
+    desc: Alias for backend-setup (for backward compatibility)
+    cmds:
+      - task: backend-setup
+
+  dev:
+    desc: Alias for backend-dev (for backward compatibility)
+    cmds:
+      - task: backend-dev
+
+  test:
+    desc: Alias for backend-test (for backward compatibility)
+    cmds:
+      - task: backend-test
+
+  lint:
+    desc: Alias for backend-lint (for backward compatibility)
+    cmds:
+      - task: backend-lint
+
+  # Full-stack aliases
+  dev-all:
+    desc: Alias for start-all (for backward compatibility)
+    cmds:
+      - task: start-all
+
+  dev-test:
+    desc: Alias for start-test (for backward compatibility)
+    cmds:
+      - task: start-test
+
+  # Additional aliases
+  openapi-generate:
+    desc: Alias for frontend-openapi-generate (for backward compatibility)
+    cmds:
+      - task: frontend-openapi-generate
+
+  db-types:
+    desc: Alias for frontend-db-types (for backward compatibility)
+    cmds:
+      - task: frontend-db-types

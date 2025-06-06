@@ -1,0 +1,12 @@
+node_modules
+npm-debug.log
+.nyc_output
+.env
+.git
+.gitignore
+README.md
+.env
+.DS_Store
+*.log
+build/
+.svelte-kit/
