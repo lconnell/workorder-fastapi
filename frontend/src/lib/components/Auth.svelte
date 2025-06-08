@@ -20,10 +20,10 @@ let error = $state<string | null>(null);
 let success = $state<string | null>(null);
 let currentMode = $state(mode);
 let showForgotPassword = $state(false);
+let formElement: HTMLFormElement | null = null;
 
-async function handleSubmit(e: Event) {
-	e.preventDefault();
-	error = null;
+async function doSubmit() {
+	error = null; // Clear previous general errors before attempting submission
 
 	try {
 		if (currentMode === "signin") {
@@ -86,6 +86,21 @@ async function handleForgotPassword() {
 		}
 	}
 }
+
+$effect(() => {
+	// Dependency: currentMode and showForgotPassword
+	// When mode changes or forgot password visibility changes, clear validation state
+	if (formElement) {
+		const inputs = formElement.querySelectorAll(".validator");
+		for (const input of inputs) {
+			input.classList.remove("was-validated");
+		}
+	}
+	// Dependencies: currentMode, showForgotPassword (implicitly via usage)
+	// Accessing them ensures the effect re-runs when they change.
+	currentMode;
+	showForgotPassword;
+});
 </script>
 
 <div class="card w-96 bg-base-100 shadow-xl rounded-lg">
@@ -106,7 +121,32 @@ async function handleForgotPassword() {
       </div>
     {/if}
 
-    <form onsubmit={handleSubmit} class="space-y-4">
+    <form
+      bind:this={formElement}
+      onsubmit={(e) => {
+        e.preventDefault();
+        if (!formElement) return;
+
+        // Add .was-validated to all validator inputs within this form
+        const inputs = formElement.querySelectorAll(".validator");
+        for (const input of inputs) {
+          input.classList.add("was-validated");
+        }
+
+        if (formElement.checkValidity()) {
+          doSubmit();
+        } else {
+          // Optionally, find the first invalid input and focus it,
+          // or rely on form.reportValidity() if you prefer browser default behavior.
+          // formElement.reportValidity(); // This shows native browser popups
+          // For custom error display via CSS, adding 'was-validated' is often enough.
+          // We might want to set a general error if specific hints aren't enough.
+          error = "Please correct the errors in the form.";
+        }
+      }}
+      class="space-y-4"
+      novalidate
+    >
       {#if currentMode === 'signup'}
         <div class="form-control">
           <label class="label" for="fullName">

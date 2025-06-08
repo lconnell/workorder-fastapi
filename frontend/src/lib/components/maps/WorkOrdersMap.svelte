@@ -1,5 +1,6 @@
 <script lang="ts">
 import { clientWrapper } from "$lib/api/client-wrapper";
+import { IconErrorCrossCircle, IconFaceFrown } from "$lib/components/icons";
 import { MAP_ATTRIBUTION, MAP_TILE_URL } from "$lib/constants";
 import { GeocodingService } from "$lib/services/geocoding";
 import type {
@@ -95,6 +96,7 @@ async function displayWorkOrders(
 	currentMappableOrders: WorkOrder[],
 ) {
 	if (!currentMappableOrders.length || !currentMapContainer) {
+		// Kept: This warn might indicate a logic flaw or race condition.
 		console.warn(
 			"displayWorkOrders called with invalid container or empty orders.",
 		);
@@ -105,12 +107,13 @@ async function displayWorkOrders(
 		// Load Leaflet if needed
 		const L = await loadLeaflet();
 		if (!L) {
-			console.error("Leaflet library could not be loaded.");
+			console.error("Leaflet library could not be loaded."); // Kept: Critical failure.
 			return;
 		}
 
 		// Check if container or data became unavailable during await
 		if (!currentMapContainer || !currentMappableOrders.length) {
+			// Kept: Important for debugging potential race conditions.
 			console.warn(
 				"Map container or work orders became unavailable (during Leaflet load). Aborting displayWorkOrders.",
 			);
@@ -146,13 +149,15 @@ async function displayWorkOrders(
 
 		// Check if container or data became unavailable during await
 		if (!currentMapContainer || !currentMappableOrders.length) {
+			// Kept: Important for debugging potential race conditions.
 			console.warn(
 				"Map container or work orders became unavailable (during geocoding). Aborting displayWorkOrders.",
 			);
 			if (leafletMap && !currentMapContainer) {
-				console.log(
-					"Removing stale map instance as container is gone after geocoding.",
-				);
+				// This console.log is more of a debug trace, could be removed, but harmless for now.
+				// console.log(
+				// 	"Removing stale map instance as container is gone after geocoding.",
+				// );
 				leafletMap.remove();
 				leafletMap = null;
 			}
@@ -174,7 +179,7 @@ async function displayWorkOrders(
 		}
 
 		if (geocodedLocations.length === 0) {
-			console.warn("No locations could be geocoded");
+			console.warn("No locations could be geocoded"); // Kept: Useful info if addresses are bad.
 			return;
 		}
 
@@ -187,6 +192,7 @@ async function displayWorkOrders(
 		// Final check for map container AND work order data before initializing map
 		// This is critical as reactive updates might nullify mapContainer or empty mappableWorkOrders synchronously.
 		if (!currentMapContainer || !currentMappableOrders.length) {
+			// Kept: Critical failure scenario.
 			console.error(
 				"CRITICAL: Map container or work orders became invalid just before L.map() call (parameters). Aborting map initialization.",
 			);
@@ -206,6 +212,7 @@ async function displayWorkOrders(
 		);
 
 		if (validGeocodedLocations.length === 0) {
+			// Kept: Informs why map might look empty or default.
 			console.warn(
 				"No valid geocoded locations to display. Setting default view.",
 			);
@@ -287,7 +294,8 @@ $effect(() => {
 	} else {
 		// Conditions to display map are NOT met. If map exists, remove it.
 		if (leafletMap) {
-			console.log("Conditions to display map no longer met. Removing map.");
+			// This console.log is more of a debug trace.
+			// console.log("Conditions to display map no longer met. Removing map.");
 			leafletMap.remove();
 			leafletMap = null;
 			isMapReady = false; // Reset map ready state
@@ -312,13 +320,13 @@ onDestroy(() => {
 	{:else if $workOrdersQuery.error}
 		<div class="flex-grow flex flex-col items-center justify-center">
 			<div class="alert alert-error max-w-md">
-				<svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+				<IconErrorCrossCircle class="stroke-current shrink-0 h-6 w-6" />
 				<span>Failed to load work orders for the map.</span>
 			</div>
 		</div>
 	{:else if mappableWorkOrders.length === 0}
 		<div class="flex-grow flex flex-col items-center justify-center text-center p-4">
-			<svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 text-base-content/30 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+			<IconFaceFrown class="text-base-content/30 mb-4" />
 			<p class="text-lg font-medium text-base-content/70">No Active Work Orders to Display</p>
 			<p class="text-sm text-base-content/50">There are currently no open or in-progress work orders with valid locations.</p>
 		</div>

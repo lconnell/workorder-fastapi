@@ -45,6 +45,8 @@ interface Props {
 // biome-ignore lint/style/useConst: Svelte 5 $bindable prop assignment requires let
 let { workOrder, mode = $bindable(), isOpen, onClose }: Props = $props();
 
+let modalElement: HTMLDialogElement;
+
 const queryClient = useQueryClient();
 
 // Form state initialization handled in separate effect below
@@ -145,40 +147,8 @@ async function handleSubmit() {
 		let locationId: string | undefined = undefined;
 
 		// All fields are required for new work orders
-		if (mode === "create") {
-			if (!editForm.title.trim()) {
-				toastStore.error("Title is required.");
-				return;
-			}
-			if (!editForm.description.trim()) {
-				toastStore.error("Description is required.");
-				return;
-			}
-			if (!editForm.status.trim()) {
-				toastStore.error("Status is required.");
-				return;
-			}
-			if (!editForm.priority.trim()) {
-				toastStore.error("Priority is required.");
-				return;
-			}
-			if (!editForm.location_address.trim()) {
-				toastStore.error("Street address is required.");
-				return;
-			}
-			if (!editForm.location_city.trim()) {
-				toastStore.error("City is required.");
-				return;
-			}
-			if (!editForm.location_state.trim()) {
-				toastStore.error("State is required.");
-				return;
-			}
-			if (!editForm.location_zip.trim()) {
-				toastStore.error("ZIP code is required.");
-				return;
-			}
-		}
+		// Native browser validation will handle individual field checks via form.checkValidity()
+		// Toast messages for individual fields are removed as hints will appear under fields
 
 		// Create location if any address fields are provided
 		if (
@@ -299,12 +269,9 @@ async function handleDelete() {
 
 // Show/hide modal based on isOpen prop
 $effect(() => {
-	const modal = document.getElementById(
-		"work-order-modal",
-	) as HTMLDialogElement;
-	if (modal) {
+	if (modalElement) {
 		if (isOpen) {
-			modal.showModal();
+			modalElement.showModal();
 			// Clear validation state when modal opens
 			const form = document.querySelector("#work-order-form");
 			if (form) {
@@ -314,33 +281,30 @@ $effect(() => {
 				}
 			}
 		} else {
-			modal.close();
+			modalElement.close();
 		}
 	}
 });
 
 // Handle modal close event
 $effect(() => {
-	const modal = document.getElementById(
-		"work-order-modal",
-	) as HTMLDialogElement;
-	if (modal) {
+	if (modalElement) {
 		const handleClose = () => {
 			onClose();
 		};
-		modal.addEventListener("close", handleClose);
+		modalElement.addEventListener("close", handleClose);
 		return () => {
-			modal.removeEventListener("close", handleClose);
+			modalElement.removeEventListener("close", handleClose);
 		};
 	}
 });
 </script>
 
 <!-- Work Order Modal -->
-<dialog id="work-order-modal" class="modal">
+<dialog id="work-order-modal" class="modal" bind:this={modalElement}>
   <div class="modal-box w-11/12 max-w-5xl rounded-lg">
     <form method="dialog">
-      <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
+      <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2" onclick={() => modalElement.close()}>✕</button>
     </form>
     <h3 class="font-bold text-lg">
       {mode === "view" ? workOrder?.title || "Work Order Details" : mode === "edit" ? workOrder?.title || "Edit Work Order" : "Create Work Order"}
@@ -597,7 +561,7 @@ $effect(() => {
             </button>
           {/if}
           <div class="flex-1"></div>
-          <button type="button" class="btn" onclick={() => (document.getElementById('work-order-modal') as HTMLDialogElement)?.close()}>Cancel</button>
+          <button type="button" class="btn" onclick={() => modalElement.close()}>Cancel</button>
           <button type="submit" class="btn btn-primary" disabled={isCreatingLocation || (mode === "create" ? $workOrderCreateMutation.isPending : $updateMutation.isPending)}>
             {#if mode === "create"}
               {#if isCreatingLocation}

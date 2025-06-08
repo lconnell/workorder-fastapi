@@ -1,7 +1,8 @@
 <script lang="ts">
 import { goto } from "$app/navigation";
 import { supabase } from "$lib/supabaseClient";
-import { onMount } from "svelte";
+import { onMount }
+from "svelte";
 
 // biome-ignore lint/style/useConst: Svelte 5 binding requires let
 let password = $state("");
@@ -10,40 +11,36 @@ let confirmPassword = $state("");
 let error = $state<string | null>(null);
 let loading = $state(false);
 let success = $state(false);
+let formElement: HTMLFormElement | null = null;
 
 onMount(async () => {
-	console.log("Reset password page loaded");
-	console.log("URL hash:", window.location.hash);
-
 	// Give Supabase time to process the URL hash and establish session
 	await new Promise((resolve) => setTimeout(resolve, 1500));
 
 	const { data, error: sessionError } = await supabase.auth.getSession();
-	console.log("Session check:", data.session ? "valid session" : "no session");
 
 	if (sessionError || !data.session) {
-		console.log("No valid session for password reset");
 		error =
 			"Invalid or expired reset link. Please request a new password reset.";
-	} else {
-		console.log("Valid reset session established");
 	}
 });
 
-async function handleSubmit(e: Event) {
-	e.preventDefault();
-	error = null;
-
-	if (password !== confirmPassword) {
-		error = "Passwords do not match";
-		return;
+$effect(() => {
+	// Clear was-validated classes when component initializes or error/success changes
+	// (indirectly indicating a new submission attempt might occur or has finished)
+	if (formElement) {
+		const inputs = formElement.querySelectorAll(".validator");
+		for (const input of inputs) {
+			input.classList.remove("was-validated");
+		}
 	}
+	// Dependencies
+	error;
+	success;
+});
 
-	if (password.length < 6) {
-		error = "Password must be at least 6 characters";
-		return;
-	}
-
+async function doSubmit() {
+	error = null; // Clear previous general errors
 	loading = true;
 
 	try {
@@ -87,13 +84,52 @@ async function handleSubmit(e: Event) {
           Enter your new password below.
         </p>
 
-        {#if error}
+        {#if error && !success} {/* Only show general error if not success */}
           <div class="alert alert-error">
             <span>{error}</span>
           </div>
         {/if}
 
-        <form onsubmit={handleSubmit} class="space-y-4">
+        <form
+          bind:this={formElement}
+          onsubmit={(e) => {
+            e.preventDefault();
+            if (!formElement) return;
+            error = null; // Clear previous errors at the start of a new submission attempt
+
+            const inputs = formElement.querySelectorAll(".validator");
+            for (const input of inputs) {
+              input.classList.add("was-validated");
+            }
+
+            // Custom check for password match FIRST
+            if (password !== confirmPassword) {
+              error = "Passwords do not match";
+              const confirmInput = formElement.querySelector<HTMLInputElement>('#confirmPassword');
+              if (confirmInput) {
+                confirmInput.focus();
+                // confirmInput.setCustomValidity("Passwords do not match"); // This makes it :invalid
+              }
+              // The .was-validated class is already added, so CSS will try to show hint if :invalid
+              // The global 'error' state is the primary message for this.
+              return;
+            }
+            // else {
+            //   const confirmInput = formElement.querySelector<HTMLInputElement>('#confirmPassword');
+            //   if (confirmInput) confirmInput.setCustomValidity(""); // Clear custom validity
+            // }
+
+            if (formElement.checkValidity()) {
+              doSubmit(); // This will also clear the main 'error' if successful
+            } else {
+              error = "Please correct the errors highlighted below.";
+              const firstInvalid = formElement.querySelector<HTMLElement>('.validator:invalid');
+              firstInvalid?.focus();
+            }
+          }}
+          class="space-y-4"
+          novalidate
+        >
           <div class="form-control">
             <label class="label" for="password">
               <span class="label-text">New Password</span>
@@ -104,10 +140,12 @@ async function handleSubmit(e: Event) {
               bind:value={password}
               required
               minlength="6"
-              class="input input-bordered"
+              class="input input-bordered validator"
               placeholder="••••••••"
               disabled={loading}
+              title="Password must be at least 6 characters"
             />
+            <p class="validator-hint text-xs mt-1">Must be at least 6 characters.</p>
           </div>
 
           <div class="form-control">
@@ -120,10 +158,12 @@ async function handleSubmit(e: Event) {
               bind:value={confirmPassword}
               required
               minlength="6"
-              class="input input-bordered"
+              class="input input-bordered validator"
               placeholder="••••••••"
               disabled={loading}
+              title="Passwords must match"
             />
+            <p class="validator-hint text-xs mt-1">Must be at least 6 characters.</p>
           </div>
 
           <div class="card-actions justify-end">

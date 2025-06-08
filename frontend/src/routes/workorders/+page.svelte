@@ -1,6 +1,14 @@
 <script lang="ts">
 import { clientWrapper } from "$lib/api/client-wrapper";
 import FilterDrawer from "$lib/components/FilterDrawer.svelte";
+import {
+	IconAppLogo,
+	IconErrorCrossCircle,
+	IconFilter,
+	IconLocationPin,
+	IconPlus,
+	IconSortArrow,
+} from "$lib/components/icons";
 import WorkOrderModal from "$lib/components/WorkOrderModal.svelte";
 import { API_ENDPOINTS } from "$lib/constants";
 import type { WorkOrder, WorkOrdersResponse } from "$lib/types/work-orders";
@@ -169,9 +177,7 @@ function applyFilters() {
       <p class="mt-2 text-base-content/70">Manage and track all work orders</p>
     </div>
     <button class="btn btn-primary" onclick={openCreateModal}>
-      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-      </svg>
+      <IconPlus class="mr-2" />
       New Work Order
     </button>
   </div>
@@ -182,9 +188,7 @@ function applyFilters() {
     </div>
   {:else if $workOrdersQuery.error}
     <div class="alert alert-error">
-      <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
-      </svg>
+      <IconErrorCrossCircle class="stroke-current shrink-0 h-6 w-6" />
       <span>Failed to load work orders. Please try again.</span>
     </div>
   {:else if $workOrdersQuery.data}
@@ -194,9 +198,7 @@ function applyFilters() {
         <div class="flex flex-wrap items-center justify-between gap-4">
       <div class="flex items-center gap-3">
         <button class="btn btn-outline" onclick={openFilterSheet}>
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
-          </svg>
+          <IconFilter class="mr-2" />
           Filters
           {#if statusFilter.length > 0 || priorityFilter.length > 0}
             <div class="badge badge-primary badge-sm">{statusFilter.length + priorityFilter.length}</div>
@@ -224,9 +226,7 @@ function applyFilters() {
       <div class="card bg-base-100 shadow-sm rounded-lg">
         <div class="card-body">
           <div class="text-center py-12">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto text-base-content/30 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-            </svg>
+            <IconAppLogo size="3em" class="mx-auto text-base-content/30 mb-4" /> {/* h-12 w-12 */}
             <p class="text-base-content/60 text-lg">No work orders match your filters</p>
             <button onclick={() => { statusFilter = []; priorityFilter = []; }} class="btn btn-sm btn-ghost mt-4">
               Clear filters
@@ -245,9 +245,7 @@ function applyFilters() {
                 <div class="flex items-center gap-2">
                   Title
                   {#if sortBy === "title"}
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d={sortOrder === "asc" ? "M5 15l7-7 7 7" : "M19 9l-7 7-7-7"} />
-                    </svg>
+                    <IconSortArrow direction={sortOrder} />
                   {/if}
                 </div>
               </th>
@@ -255,9 +253,7 @@ function applyFilters() {
                 <div class="flex items-center gap-2">
                   Status
                   {#if sortBy === "status"}
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d={sortOrder === "asc" ? "M5 15l7-7 7 7" : "M19 9l-7 7-7-7"} />
-                    </svg>
+                    <IconSortArrow direction={sortOrder} />
                   {/if}
                 </div>
               </th>
@@ -265,9 +261,7 @@ function applyFilters() {
                 <div class="flex items-center gap-2">
                   Priority
                   {#if sortBy === "priority"}
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d={sortOrder === "asc" ? "M5 15l7-7 7 7" : "M19 9l-7 7-7-7"} />
-                    </svg>
+                    <IconSortArrow direction={sortOrder} />
                   {/if}
                 </div>
               </th>
@@ -275,9 +269,7 @@ function applyFilters() {
                 <div class="flex items-center gap-2">
                   Date Opened
                   {#if sortBy === "created_at"}
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d={sortOrder === "asc" ? "M5 15l7-7 7 7" : "M19 9l-7 7-7-7"} />
-                    </svg>
+                    <IconSortArrow direction={sortOrder} />
                   {/if}
                 </div>
               </th>
@@ -290,10 +282,7 @@ function applyFilters() {
                   <div class="font-bold">{workOrder.title}</div>
                   {#if workOrder.location}
                     <div class="text-sm opacity-50">
-                      <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 inline mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                      </svg>
+                      <IconLocationPin class="inline mr-1" />
                       {workOrder.location.address || workOrder.location.name}
                     </div>
                   {/if}
