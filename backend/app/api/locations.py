@@ -87,6 +87,25 @@ async def create_location(
 
         location_data = location.model_dump()
 
+        # Always construct complete formatted address from components
+        # This ensures location.address always contains the full address
+        address_components = [
+            location.address,
+            location.city,
+            location.state_province,
+            location.postal_code,
+        ]
+        formatted_address = ", ".join([comp for comp in address_components if comp])
+
+        if formatted_address:
+            location_data["address"] = formatted_address
+        elif location.name:
+            # Fallback to name if no address components provided
+            location_data["address"] = location.name
+        else:
+            # Ensure we always have something in the address field
+            location_data["address"] = "Location Address Not Specified"
+
         # Auto-geocode if coordinates not provided
         if not location.latitude or not location.longitude:
             lat, lon = await geocode_address(address_parts)

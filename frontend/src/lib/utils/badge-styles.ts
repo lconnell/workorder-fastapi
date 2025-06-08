@@ -1,107 +1,111 @@
 /**
- * Shared badge styling utilities for work order status and priority
- * Used across modals and tables for consistent styling
+ * Unified badge styling utilities for work order status and priority
+ * Uses DaisyUI semantic badge classes with consistent DRY approach
  */
-
-interface BadgeClasses {
-	bg: string;
-	text: string;
-	border?: string;
-}
 
 /**
- * Professional modal badge colors (more vibrant for emphasis)
+ * Get status badge classes with optional variant and size
  */
-export function getModalStatusBadgeClasses(status: string): BadgeClasses {
+export function getStatusBadgeClasses(
+	status: string,
+	variant: "default" | "soft" | "outline" = "default",
+	size: "xs" | "sm" | "md" | "lg" = "md",
+): string {
 	const s = status?.toLowerCase() || "default";
+
+	// Base semantic class
+	let baseClass: string;
 	switch (s) {
 		case "open":
-			return { bg: "bg-sky-600", text: "text-sky-50" };
+			baseClass = "badge-info";
+			break;
 		case "in progress":
 		case "pending":
-			return { bg: "bg-amber-500", text: "text-amber-950" };
+			baseClass = "badge-warning";
+			break;
 		case "on hold":
-			return { bg: "bg-indigo-600", text: "text-indigo-50" };
+			baseClass = "badge-neutral";
+			break;
 		case "closed":
 		case "completed":
 		case "resolved":
-			return { bg: "bg-emerald-600", text: "text-emerald-50" };
+			baseClass = "badge-success";
+			break;
 		case "cancelled":
 		case "failed":
-			return { bg: "bg-rose-600", text: "text-rose-50" };
+			baseClass = "badge-error";
+			break;
 		default:
-			return { bg: "bg-slate-500", text: "text-slate-50" };
+			baseClass = "badge-neutral";
 	}
-}
 
-export function getModalPriorityBadgeClasses(priority: string): BadgeClasses {
-	const p = priority?.toLowerCase() || "default";
-	switch (p) {
-		case "low":
-			return {
-				bg: "bg-green-100",
-				text: "text-green-800",
-				border: "border-green-500",
-			};
-		case "medium":
-			return {
-				bg: "bg-yellow-100",
-				text: "text-yellow-800",
-				border: "border-yellow-500",
-			};
-		case "high":
-			return {
-				bg: "bg-red-100",
-				text: "text-red-800",
-				border: "border-red-500",
-			};
-		case "urgent":
-		case "critical":
-			return {
-				bg: "bg-purple-100",
-				text: "text-purple-800",
-				border: "border-purple-500",
-			};
-		default:
-			return {
-				bg: "bg-gray-100",
-				text: "text-gray-800",
-				border: "border-gray-500",
-			};
-	}
+	// Add variant modifier
+	const variantClass =
+		variant === "soft"
+			? "badge-soft"
+			: variant === "outline"
+				? "badge-outline"
+				: "";
+
+	// Add size modifier
+	const sizeClass = size !== "md" ? `badge-${size}` : "";
+
+	return [baseClass, variantClass, sizeClass].filter(Boolean).join(" ");
 }
 
 /**
- * Subtle table badge colors (professional, low contrast)
+ * Get priority badge classes with optional variant and size
  */
-export function getTableStatusBadgeClasses(status: string): string {
-	const s = status?.toLowerCase() || "";
-	switch (s) {
-		case "open":
-			return "bg-blue-50 text-blue-700 border-blue-200";
-		case "in progress":
-			return "bg-amber-50 text-amber-700 border-amber-200";
-		case "on hold":
-			return "bg-purple-50 text-purple-700 border-purple-200";
-		case "completed":
-			return "bg-green-50 text-green-700 border-green-200";
-		case "cancelled":
-			return "bg-red-50 text-red-700 border-red-200";
-		default:
-			return "bg-gray-50 text-gray-700 border-gray-200";
-	}
-}
+export function getPriorityBadgeClasses(
+	priority: string,
+	variant: "default" | "soft" | "outline" = "outline",
+	size: "xs" | "sm" | "md" | "lg" = "md",
+): string {
+	const p = priority?.toLowerCase() || "default";
 
-export function getTablePriorityBadgeClasses(priority: string): string {
-	const p = priority?.toLowerCase() || "";
+	// Base semantic class and variant override for critical priorities
+	let baseClass: string;
+	let finalVariant = variant;
 	switch (p) {
 		case "low":
-			return "bg-slate-50 text-slate-600 border-slate-200";
+			baseClass = "badge-success";
+			break;
 		case "medium":
-			return "bg-blue-50 text-blue-600 border-blue-200";
+			baseClass = "badge-warning";
+			break;
 		case "high":
-			return "bg-orange-50 text-orange-700 border-orange-200";
+			baseClass = "badge-error";
+			break;
+		case "urgent":
+		case "critical":
+			baseClass = "badge-error";
+			// Critical/urgent gets solid styling regardless of variant
+			finalVariant = "default";
+			break;
 		default:
-			return "bg-gray-50 text-gray-600 border-gray-200";
+			baseClass = "badge-neutral";
 	}
+
+	// Add variant modifier
+	const variantClass =
+		finalVariant === "soft"
+			? "badge-soft"
+			: finalVariant === "outline"
+				? "badge-outline"
+				: "";
+
+	// Add size modifier
+	const sizeClass = size !== "md" ? `badge-${size}` : "";
+
+	return [baseClass, variantClass, sizeClass].filter(Boolean).join(" ");
 }
+
+// Legacy functions for backward compatibility - use unified functions above instead
+export const getModalStatusBadgeClasses = (status: string) =>
+	getStatusBadgeClasses(status, "soft", "sm");
+export const getModalPriorityBadgeClasses = (priority: string) =>
+	getPriorityBadgeClasses(priority, "soft", "sm");
+export const getTableStatusBadgeClasses = (status: string) =>
+	getStatusBadgeClasses(status, "soft", "sm");
+export const getTablePriorityBadgeClasses = (priority: string) =>
+	getPriorityBadgeClasses(priority, "soft", "sm");

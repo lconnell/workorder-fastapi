@@ -1,5 +1,6 @@
 <script lang="ts">
 import { clientWrapper } from "$lib/api/client-wrapper";
+import FilterDrawer from "$lib/components/FilterDrawer.svelte";
 import WorkOrderModal from "$lib/components/WorkOrderModal.svelte";
 import { API_ENDPOINTS } from "$lib/constants";
 import type { WorkOrder, WorkOrdersResponse } from "$lib/types/work-orders";
@@ -11,9 +12,7 @@ import { formatDate } from "$lib/utils/date-formatter";
 import { createQuery } from "@tanstack/svelte-query";
 
 // Filter states
-// biome-ignore lint/style/useConst: Svelte 5 binding/assignment requires let
 let statusFilter = $state<string[]>([]);
-// biome-ignore lint/style/useConst: Svelte 5 binding/assignment requires let
 let priorityFilter = $state<string[]>([]);
 let sortBy = $state<"id" | "title" | "status" | "priority" | "created_at">(
 	"created_at",
@@ -26,6 +25,12 @@ const itemsPerPage = 10;
 let selectedWorkOrder = $state<WorkOrder | null>(null);
 let modalMode = $state<"view" | "edit" | "create">("view");
 let isModalOpen = $state(false);
+
+// Filter sheet state
+let isFilterSheetOpen = $state(false);
+// Temporary filter states for the sheet
+let tempStatusFilter = $state<string[]>([]);
+let tempPriorityFilter = $state<string[]>([]);
 
 // Define reactive query options using $derived
 const queryOptions = $derived({
@@ -140,6 +145,19 @@ function closeModal() {
 	selectedWorkOrder = null;
 }
 
+function openFilterSheet() {
+	// Copy current filters to temp states
+	tempStatusFilter = [...statusFilter];
+	tempPriorityFilter = [...priorityFilter];
+	isFilterSheetOpen = true;
+}
+
+function applyFilters() {
+	// Apply temp filters to actual filters
+	statusFilter = [...tempStatusFilter];
+	priorityFilter = [...tempPriorityFilter];
+}
+
 // Badge styling and date formatting now handled by shared utilities
 </script>
 
@@ -171,85 +189,40 @@ function closeModal() {
     </div>
   {:else if $workOrdersQuery.data}
     <!-- Filters -->
-    <div class="flex flex-wrap items-end justify-between gap-4 mb-6">
-      <div class="flex gap-4">
-        <!-- Status Filter -->
-        <div class="form-control">
-          <span class="label-text font-medium mb-2">Status</span>
-          <div class="dropdown">
-            <button type="button" class="btn btn-outline bg-base-100 justify-between min-w-48">
-              <span>
-                {#if statusFilter.length === 0}
-                  All Statuses
-                {:else if statusFilter.length === 1}
-                  {statusFilter[0]}
-                {:else}
-                  {statusFilter.length} selected
-                {/if}
-              </span>
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
-            <div class="dropdown-content menu bg-base-100 rounded-box z-[1] w-52 p-2 shadow border">
-              {#each uniqueStatuses as status}
-                <label class="label cursor-pointer justify-start">
-                  <input
-                    type="checkbox"
-                    class="checkbox checkbox-sm mr-3"
-                    bind:group={statusFilter}
-                    value={status}
-                  />
-                  <span class="label-text">{status}</span>
-                </label>
-              {/each}
-            </div>
-          </div>
-        </div>
+    <div class="card bg-base-100 shadow-sm mb-6 rounded-lg">
+      <div class="card-body p-4">
+        <div class="flex flex-wrap items-center justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <button class="btn btn-outline" onclick={openFilterSheet}>
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+          </svg>
+          Filters
+          {#if statusFilter.length > 0 || priorityFilter.length > 0}
+            <div class="badge badge-primary badge-sm">{statusFilter.length + priorityFilter.length}</div>
+          {/if}
+        </button>
 
-        <!-- Priority Filter -->
-        <div class="form-control">
-          <span class="label-text font-medium mb-2">Priority</span>
-          <div class="dropdown">
-            <button type="button" class="btn btn-outline bg-base-100 justify-between min-w-48">
-              <span>
-                {#if priorityFilter.length === 0}
-                  All Priorities
-                {:else if priorityFilter.length === 1}
-                  {priorityFilter[0]}
-                {:else}
-                  {priorityFilter.length} selected
-                {/if}
-              </span>
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
-            <div class="dropdown-content menu bg-base-100 rounded-box z-[1] w-52 p-2 shadow border">
-              {#each uniquePriorities as priority}
-                <label class="label cursor-pointer justify-start">
-                  <input
-                    type="checkbox"
-                    class="checkbox checkbox-sm mr-3"
-                    bind:group={priorityFilter}
-                    value={priority}
-                  />
-                  <span class="label-text">{priority}</span>
-                </label>
-              {/each}
-            </div>
-          </div>
-        </div>
+        {#if statusFilter.length > 0 || priorityFilter.length > 0}
+          <button
+            class="btn btn-ghost btn-sm"
+            onclick={() => { statusFilter = []; priorityFilter = []; }}
+          >
+            Clear filters
+          </button>
+        {/if}
       </div>
 
-      <div class="text-sm text-base-content/60 font-medium">
-        {filteredAndSortedWorkOrders.length} of {$workOrdersQuery.data.data.length} orders
+          <div class="text-sm text-base-content/60 font-medium">
+            {filteredAndSortedWorkOrders.length} of {$workOrdersQuery.data.data.length} orders
+          </div>
+        </div>
       </div>
     </div>
 
-    <div class="card bg-base-100 shadow-xl w-full">
-      <div class="card-body p-0">
-        {#if filteredAndSortedWorkOrders.length === 0}
+    {#if filteredAndSortedWorkOrders.length === 0}
+      <div class="card bg-base-100 shadow-sm rounded-lg">
+        <div class="card-body">
           <div class="text-center py-12">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto text-base-content/30 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
@@ -259,113 +232,115 @@ function closeModal() {
               Clear filters
             </button>
           </div>
-        {:else}
+        </div>
+      </div>
+    {:else}
+      <div class="card bg-base-100 shadow-sm rounded-lg">
+        <div class="card-body p-0">
           <div class="overflow-x-auto">
-            <table class="table table-zebra w-full">
-              <thead>
-                <tr>
-                  <th class="cursor-pointer hover:bg-primary/10 transition-colors" onclick={() => toggleSort("title")}>
-                    <div class="flex items-center gap-2">
-                      Title
-                      {#if sortBy === "title"}
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d={sortOrder === "asc" ? "M5 15l7-7 7 7" : "M19 9l-7 7-7-7"} />
-                        </svg>
-                      {/if}
+            <table class="table table-pin-rows">
+          <thead>
+            <tr>
+              <th class="cursor-pointer" onclick={() => toggleSort("title")}>
+                <div class="flex items-center gap-2">
+                  Title
+                  {#if sortBy === "title"}
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d={sortOrder === "asc" ? "M5 15l7-7 7 7" : "M19 9l-7 7-7-7"} />
+                    </svg>
+                  {/if}
+                </div>
+              </th>
+              <th class="cursor-pointer" onclick={() => toggleSort("status")}>
+                <div class="flex items-center gap-2">
+                  Status
+                  {#if sortBy === "status"}
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d={sortOrder === "asc" ? "M5 15l7-7 7 7" : "M19 9l-7 7-7-7"} />
+                    </svg>
+                  {/if}
+                </div>
+              </th>
+              <th class="cursor-pointer" onclick={() => toggleSort("priority")}>
+                <div class="flex items-center gap-2">
+                  Priority
+                  {#if sortBy === "priority"}
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d={sortOrder === "asc" ? "M5 15l7-7 7 7" : "M19 9l-7 7-7-7"} />
+                    </svg>
+                  {/if}
+                </div>
+              </th>
+              <th class="cursor-pointer" onclick={() => toggleSort("created_at")}>
+                <div class="flex items-center gap-2">
+                  Date Opened
+                  {#if sortBy === "created_at"}
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d={sortOrder === "asc" ? "M5 15l7-7 7 7" : "M19 9l-7 7-7-7"} />
+                    </svg>
+                  {/if}
+                </div>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {#each filteredAndSortedWorkOrders as workOrder}
+              <tr class="hover cursor-pointer" onclick={() => openViewModal(workOrder)}>
+                <td>
+                  <div class="font-bold">{workOrder.title}</div>
+                  {#if workOrder.location}
+                    <div class="text-sm opacity-50">
+                      <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 inline mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                      {workOrder.location.address || workOrder.location.name}
                     </div>
-                  </th>
-                  <th class="cursor-pointer hover:bg-primary/10 transition-colors" onclick={() => toggleSort("status")}>
-                    <div class="flex items-center gap-2">
-                      Status
-                      {#if sortBy === "status"}
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d={sortOrder === "asc" ? "M5 15l7-7 7 7" : "M19 9l-7 7-7-7"} />
-                        </svg>
-                      {/if}
-                    </div>
-                  </th>
-                  <th class="cursor-pointer hover:bg-primary/10 transition-colors" onclick={() => toggleSort("priority")}>
-                    <div class="flex items-center gap-2">
-                      Priority
-                      {#if sortBy === "priority"}
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d={sortOrder === "asc" ? "M5 15l7-7 7 7" : "M19 9l-7 7-7-7"} />
-                        </svg>
-                      {/if}
-                    </div>
-                  </th>
-                  <th class="cursor-pointer hover:bg-primary/10 transition-colors" onclick={() => toggleSort("created_at")}>
-                    <div class="flex items-center gap-2">
-                      Date Opened
-                      {#if sortBy === "created_at"}
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d={sortOrder === "asc" ? "M5 15l7-7 7 7" : "M19 9l-7 7-7-7"} />
-                        </svg>
-                      {/if}
-                    </div>
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {#each filteredAndSortedWorkOrders as workOrder}
-                  <tr class="cursor-pointer hover:bg-primary/10 transition-colors" onclick={() => openViewModal(workOrder)}>
-                    <td class="max-w-2xl">
-                      <div class="font-medium text-base mb-1">{workOrder.title}</div>
-                      {#if workOrder.location}
-                        <div class="text-xs opacity-60 mt-1">
-                          <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 inline mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                          </svg>
-                          {workOrder.location.address || workOrder.location.name}
-                        </div>
-                      {/if}
-                    </td>
-                    <td>
-                      <div class="badge border {getTableStatusBadgeClasses(workOrder.status)}">
-                        {workOrder.status}
-                      </div>
-                    </td>
-                    <td>
-                      <div class="badge border {getTablePriorityBadgeClasses(workOrder.priority)}">
-                        {workOrder.priority}
-                      </div>
-                    </td>
-                    <td>
-                      <div class="text-sm">{formatDate(workOrder.created_at)}</div>
-                    </td>
-                  </tr>
-                {/each}
-              </tbody>
+                  {/if}
+                </td>
+                <td>
+                  <div class="badge {getTableStatusBadgeClasses(workOrder.status)}">
+                    {workOrder.status}
+                  </div>
+                </td>
+                <td>
+                  <div class="badge {getTablePriorityBadgeClasses(workOrder.priority)}">
+                    {workOrder.priority}
+                  </div>
+                </td>
+                <td>{formatDate(workOrder.created_at)}</td>
+              </tr>
+            {/each}
+          </tbody>
             </table>
           </div>
-
-          {#if $workOrdersQuery.data?.pagination && $workOrdersQuery.data.pagination.totalPages > 1}
-            <div class="flex justify-center p-4 border-t">
-              <div class="join">
-                <button
-                  class="join-item btn btn-sm"
-                  disabled={currentPage === 1}
-                  onclick={() => currentPage = currentPage - 1}
-                >
-                  «
-                </button>
-                <button class="join-item btn btn-sm">
-                  Page {currentPage} of {$workOrdersQuery.data.pagination.totalPages}
-                </button>
-                <button
-                  class="join-item btn btn-sm"
-                  disabled={currentPage === $workOrdersQuery.data.pagination.totalPages}
-                  onclick={() => currentPage = currentPage + 1}
-                >
-                  »
-                </button>
-              </div>
-            </div>
-          {/if}
-        {/if}
+        </div>
       </div>
-    </div>
+
+      {#if $workOrdersQuery.data?.pagination && $workOrdersQuery.data.pagination.totalPages > 1}
+        <div class="flex justify-center p-4">
+          <div class="join">
+            <button
+              class="join-item btn"
+              disabled={currentPage === 1}
+              onclick={() => currentPage = currentPage - 1}
+            >
+              «
+            </button>
+            <button class="join-item btn">
+              Page {currentPage} of {$workOrdersQuery.data.pagination.totalPages}
+            </button>
+            <button
+              class="join-item btn"
+              disabled={currentPage === $workOrdersQuery.data.pagination.totalPages}
+              onclick={() => currentPage = currentPage + 1}
+            >
+              »
+            </button>
+          </div>
+        </div>
+      {/if}
+    {/if}
   {/if}
 </div>
 
@@ -376,3 +351,62 @@ function closeModal() {
   isOpen={isModalOpen}
   onClose={closeModal}
 />
+
+<!-- Filter Drawer -->
+<FilterDrawer
+  drawerId="filter-drawer"
+  isOpen={isFilterSheetOpen}
+  onClose={() => isFilterSheetOpen = false}
+  title="Filter Work Orders"
+  onApply={applyFilters}
+>
+  <!-- Status Filter Section -->
+  <div class="form-control">
+    <h4 class="label-text font-semibold mb-3">Status</h4>
+    <div class="space-y-3">
+      {#each uniqueStatuses as status, index}
+        <div class="form-control">
+          <label class="label cursor-pointer justify-start" for="status-{index}">
+            <input
+              type="checkbox"
+              class="checkbox checkbox-primary"
+              bind:group={tempStatusFilter}
+              value={status}
+              id="status-{index}"
+              name="status-filter"
+            />
+            <span class="label-text ml-3">{status}</span>
+          </label>
+        </div>
+      {/each}
+    </div>
+  </div>
+
+  <!-- Priority Filter Section -->
+  <div class="form-control">
+    <h4 class="label-text font-semibold mb-3">Priority</h4>
+    <div class="space-y-3">
+      {#each uniquePriorities as priority, index}
+        <div class="form-control">
+          <label class="label cursor-pointer justify-start" for="priority-{index}">
+            <input
+              type="checkbox"
+              class="checkbox checkbox-primary"
+              bind:group={tempPriorityFilter}
+              value={priority}
+              id="priority-{index}"
+              name="priority-filter"
+            />
+            <span class="label-text ml-3">{priority}</span>
+          </label>
+        </div>
+      {/each}
+    </div>
+  </div>
+
+  <!-- Filter Summary -->
+  <div class="divider"></div>
+  <div class="text-sm text-base-content/60">
+    {tempStatusFilter.length + tempPriorityFilter.length} filter{tempStatusFilter.length + tempPriorityFilter.length !== 1 ? 's' : ''} selected
+  </div>
+</FilterDrawer>

@@ -12,6 +12,30 @@ The system manages work orders with secure user authentication and role-based ac
 
 ## Code Quality & Architecture
 
+### ⭐ Core Design Philosophy
+**PARAMOUNT PRINCIPLES - MUST BE FOLLOWED AT ALL TIMES:**
+
+- **Best Practices & Standards**: Always use web standards, semantic HTML, proper accessibility (ARIA, WCAG)
+- **Clean Design**: Professional, consistent visual hierarchy with cohesive color schemes and proper spacing
+- **DRY Principles**: Shared utilities, reusable components, centralized logic - never duplicate code
+- **Progressive Web App**: Mobile-first responsive design optimized for web and mobile usage
+- **Accessibility First**: Screen readers, keyboard navigation, proper form labels and validation
+- **Consistent Architecture**: Well-structured, maintainable codebase that simplifies management
+
+**Design Quality Standards:**
+- Use DaisyUI semantic color variables (`hsl(var(--p))` for primary, etc.)
+- Eliminate visual inconsistencies (double outlines, mismatched colors, etc.)
+- Maintain unified component patterns across the application
+- Follow established badge systems, error handling, and state management patterns
+- Ensure all interactions provide clear, immediate feedback
+
+**Development Excellence:**
+- TypeScript safety with proper interfaces and type checking
+- Proper error handling with user-friendly toast notifications
+- Form validation using web standards with DaisyUI validator classes
+- Performance optimization through TanStack Query caching
+- Clean, readable code with consistent formatting and naming
+
 ### Shared Utilities (Follow DRY Principles)
 - **Badge Styling**: Use `/frontend/src/lib/utils/badge-styles.ts` for consistent badge colors
   - `getModalStatusBadgeClasses()` and `getModalPriorityBadgeClasses()` for modal views
@@ -23,22 +47,48 @@ The system manages work orders with secure user authentication and role-based ac
   - `handle_supabase_error()` for database operation errors
   - `validate_supabase_response()` for response validation
   - `create_not_found_error()` and `create_validation_error()` for common errors
+- **Toast Notifications**: Use `/frontend/src/lib/stores/toastStore.svelte.ts` for user feedback
+  - `toastStore.success()` for successful operations
+  - `toastStore.error()` for error messages
+  - `toastStore.warning()` and `toastStore.info()` for other notifications
+  - Never use browser `alert()` - always use toast system
 
 ### Development Principles
 - **DRY Principle**: Always check for existing utilities before creating new ones
 - **Type Safety**: Use shared TypeScript interfaces from `/frontend/src/lib/types/`
-- **Consistent Styling**: Use established badge colors and spacing patterns
+- **DaisyUI First**: When writing frontend code (HTML/Svelte) that uses Tailwind CSS, always prefer using DaisyUI components for UI elements (e.g., buttons, modals, forms, alerts) instead of custom Tailwind classes—unless a DaisyUI component does not meet the functional or stylistic requirements. Custom Tailwind utility classes should only be used for layout, spacing, or when extending DaisyUI components with minimal overrides. The goal is to maintain consistent design and reduce custom styling overhead.
+- **Consistent Styling**: Use established badge colors and spacing patterns via DaisyUI semantic classes
 - **Error Handling**: Follow standardized error response patterns in backend
 - **Performance**: Use TanStack Query for caching and invalidation
-- **UI Consistency**: Maintain professional color schemes (subtle backgrounds, darker text)
+- **UI Consistency**: Maintain professional color schemes through DaisyUI theming
+- **Form Validation**: Always use DaisyUI validator classes with web standards
+  - Add `validator` class to inputs that require validation
+  - Include `validator-hint` paragraphs for user guidance
+  - Use HTML5 attributes: `required`, `pattern`, `minlength`, `maxlength`, `title`
+  - Provide clear, helpful error messages
+  - **ALL fields are required for new work orders** (title, status, priority, location)
+- **Focus States**: Custom focus styling in `app.css` using DaisyUI color variables
+  - Single blue outline using `hsl(var(--p))` (primary color)
+  - No double outlines or default browser styling
 
 ### Workflow Principles
+- **ALWAYS use Taskfile.yml commands** - Never run ad-hoc npm, uv, or python commands directly
+  - Use `task --list` to see available commands
+  - All commands are configured to run in the correct directories with proper settings
+  - This prevents issues like cache directories being created in wrong locations
 - Use Taskfile.yml for executing commands, especially for validating code
 - Update CLAUDE.md and README.md when changes are relevant
 - Use provided API testing tasks to validate backend-frontend communication
 - Use tanstack svelte-query for all backend queries from frontend
 - Do not use timers in the frontend, use events
-- Use daisyui for rendering components in the frontend
+- Use daisyui for rendering components in the frontend:
+  - Tables use DaisyUI's `table` class with `table-pin-rows` for sticky headers
+  - Modals use native HTML `<dialog>` element with DaisyUI modal styling
+  - Filters use DaisyUI drawer component (right-side drawer)
+  - Navigation uses DaisyUI navbar with responsive dropdowns
+  - User avatar in navbar uses DaisyUI avatar component
+  - All buttons use DaisyUI button classes (`btn`, `btn-primary`, etc.)
+  - Forms use DaisyUI form controls and inputs
 - Use context7 MCP server for Svelte5, Supabase and FastAPI documentation
 - Use supabase MCP server for Supabase related actions
 - When writing frontend/typescript code, take into consideration that we are building a progressive web app that can be used on web and mobile
@@ -55,6 +105,17 @@ The system manages work orders with secure user authentication and role-based ac
 ## Development Setup
 
 This project uses `uv` as the package manager and Taskfile for task automation.
+
+### Important: Command Execution Policy
+**ALWAYS use Task commands from Taskfile.yml instead of running commands directly:**
+- ❌ NEVER: `npm run lint`, `uv run mypy`, `cd frontend && npm install`
+- ✅ ALWAYS: `task frontend-lint`, `task backend-mypy`, `task frontend-install`
+
+This ensures:
+- Commands run in the correct directories
+- Cache files are created in the right locations
+- Consistent environment across all operations
+- Proper dependency management
 
 ### Quick Setup
 ```bash

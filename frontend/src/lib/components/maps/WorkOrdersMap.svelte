@@ -327,7 +327,8 @@ onDestroy(() => {
     <div class="bg-base-200/80 backdrop-blur-sm p-2 rounded-t-lg shadow text-center text-sm text-base-content/90 mb-[-1px] z-10 relative">
       Displaying <span class="font-semibold text-primary">{mappableWorkOrders.length}</span> active work order{mappableWorkOrders.length !== 1 ? 's' : ''}
       {#if isMapReady}
-        at <span class="font-semibold text-secondary">{new Set(mappableWorkOrders.map(wo => wo.location?.address)).size}</span> unique location{new Set(mappableWorkOrders.map(wo => wo.location?.address)).size !== 1 ? 's' : ''}
+        {@const uniqueAddresses = new Set(mappableWorkOrders.map(wo => wo.location?.address).filter(Boolean))}
+        at <span class="font-semibold text-secondary">{uniqueAddresses.size}</span> unique location{uniqueAddresses.size !== 1 ? 's' : ''}
       {/if}
     </div>
 		<div class="flex-grow w-full rounded-b-xl bg-base-200 border border-base-300 relative overflow-hidden">

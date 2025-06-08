@@ -66,7 +66,7 @@ $effect(() => {
 			<span>Error: {error}</span>
 		</div>
 	{:else if profile}
-		<div class="card bg-base-100 shadow-xl max-w-lg mx-auto">
+		<div class="card bg-base-100 shadow-xl max-w-lg mx-auto rounded-lg">
 			<div class="card-body items-center text-center">
 				<h2 class="card-title mb-6">Profile Details</h2>
 
@@ -78,8 +78,8 @@ $effect(() => {
 					</div>
 				{:else}
 					<div class="avatar placeholder mb-4">
-						<div class="bg-neutral text-neutral-content rounded-full w-24 ring ring-primary ring-offset-base-100 ring-offset-2">
-							<span class="text-3xl">{authStore.user?.email?.[0]?.toUpperCase() || 'U'}</span>
+						<div class="bg-neutral text-neutral-content rounded-full w-24 h-24 flex items-center justify-center ring ring-primary ring-offset-base-100 ring-offset-2">
+							<span class="text-2xl font-bold leading-none">{authStore.user?.email?.[0]?.toUpperCase() || 'U'}</span>
 						</div>
 					</div>
 				{/if}

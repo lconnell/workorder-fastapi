@@ -88,7 +88,7 @@ async function handleForgotPassword() {
 }
 </script>
 
-<div class="card w-96 bg-base-100 shadow-xl">
+<div class="card w-96 bg-base-100 shadow-xl rounded-lg">
   <div class="card-body">
     <h2 class="card-title">
       {currentMode === 'signin' ? 'Sign In' : 'Sign Up'}
@@ -116,9 +116,13 @@ async function handleForgotPassword() {
             id="fullName"
             type="text"
             bind:value={fullName}
-            class="input input-bordered"
+            class="input validator"
             placeholder="John Doe"
+            required
+            minlength="2"
+            title="Full name is required"
           />
+          <p class="validator-hint">Full name is required</p>
         </div>
       {/if}
 
@@ -131,9 +135,11 @@ async function handleForgotPassword() {
           type="email"
           bind:value={email}
           required
-          class="input input-bordered"
+          class="input validator"
           placeholder="user@example.com"
+          title="Valid email address is required"
         />
+        <p class="validator-hint">Valid email address is required</p>
       </div>
 
       <div class="form-control">
@@ -146,9 +152,11 @@ async function handleForgotPassword() {
           bind:value={password}
           required
           minlength="6"
-          class="input input-bordered"
+          class="input validator"
           placeholder="••••••••"
+          title="Password must be at least 6 characters"
         />
+        <p class="validator-hint">Password must be at least 6 characters</p>
       </div>
 
       <div class="card-actions flex-col gap-2">
@@ -195,8 +203,9 @@ async function handleForgotPassword() {
                 type="email"
                 bind:value={email}
                 placeholder="your@email.com"
-                class="input input-bordered input-sm flex-1"
+                class="input validator input-sm flex-1"
                 required
+                title="Valid email address is required"
               />
               <button
                 type="button"

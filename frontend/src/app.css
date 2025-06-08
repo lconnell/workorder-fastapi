@@ -2,3 +2,55 @@
 @plugin "daisyui" {
 	themes: corporate --default, business --prefersdark;
 }
+
+/* Fix input border colors to match DaisyUI fieldset styling */
+.input,
+.select,
+.textarea {
+	border-color: hsl(var(--bc) / 0.2);
+}
+
+html body .input:focus,
+html body .select:focus,
+html body .textarea:focus,
+html body input.input:focus,
+html body select.select:focus,
+html body textarea.textarea:focus {
+	outline: none !important;
+	border: 1px solid #3b82f6 !important;
+	border-color: #3b82f6 !important;
+	box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2) !important;
+}
+
+/* Prevent premature validation styling - only show after form submission attempt */
+.input.validator:not(:focus):not(.was-validated),
+.select.validator:not(:focus):not(.was-validated),
+.textarea.validator:not(:focus):not(.was-validated) {
+	border-color: hsl(var(--bc) / 0.2) !important;
+}
+
+/* Hide validator hints until needed */
+.validator-hint {
+	display: none;
+}
+
+/* Show validation only after form interaction or submission */
+.input.validator:invalid.was-validated,
+.select.validator:invalid.was-validated,
+.textarea.validator:invalid.was-validated {
+	border-color: hsl(var(--er)) !important;
+}
+
+.input.validator:valid.was-validated,
+.select.validator:valid.was-validated,
+.textarea.validator:valid.was-validated {
+	border-color: hsl(var(--su)) !important;
+}
+
+/* Show hints only when validation is active */
+.input.validator:invalid.was-validated + .validator-hint,
+.select.validator:invalid.was-validated + .validator-hint,
+.textarea.validator:invalid.was-validated + .validator-hint {
+	display: block;
+	color: hsl(var(--er));
+}
