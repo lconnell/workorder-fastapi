@@ -31,7 +31,7 @@ const {
 				{/if}
 			</div>
 			<div class={colorClass}>
-				<svelte:element this={iconComponent} class="w-8 h-8 stroke-current" />
+				<iconComponent class="w-8 h-8 stroke-current" />
 			</div>
 		</div>
 	</a>
