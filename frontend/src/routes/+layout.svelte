@@ -78,7 +78,7 @@ $effect(() => {
           </li>
           <li>
             <a href="/workorders" class="font-medium {$page.url.pathname.startsWith('/workorders') ? 'bg-primary text-primary-content' : ''}">
-              <IconAppLogo size="1.25em" class="mr-1" /> {/* h-5 w-5 */}
+              <IconAppLogo size="1.25em" class="mr-1" />
               Work Orders
             </a>
           </li>

@@ -226,7 +226,7 @@ function applyFilters() {
       <div class="card bg-base-100 shadow-sm rounded-lg">
         <div class="card-body">
           <div class="text-center py-12">
-            <IconAppLogo size="3em" class="mx-auto text-base-content/30 mb-4" /> {/* h-12 w-12 */}
+            <IconAppLogo size="3em" class="mx-auto text-base-content/30 mb-4" />
             <p class="text-base-content/60 text-lg">No work orders match your filters</p>
             <button onclick={() => { statusFilter = []; priorityFilter = []; }} class="btn btn-sm btn-ghost mt-4">
               Clear filters
