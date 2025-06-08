@@ -10,10 +10,12 @@ import type {
 } from "$lib/types/work-orders";
 import { createQuery } from "@tanstack/svelte-query";
 import type * as L from "leaflet";
-import { onDestroy, tick } from "svelte";
+import { createEventDispatcher, onDestroy, tick } from "svelte";
 
 // biome-ignore lint/style/useConst: Svelte 5 bind:this requires let
 let mapContainer = $state<HTMLDivElement | null>(null);
+const dispatch = createEventDispatcher();
+let currentMapClickHandler: ((event: MouseEvent) => void) | null = null;
 let leafletMap: L.Map | null = $state(null);
 let leafletLib: typeof L | null = null;
 let isMapReady = $state(false);
@@ -231,7 +233,7 @@ async function displayWorkOrders(
 					<ul class="mt-2 text-xs">
 						${singleLoc.workOrders
 							.slice(0, 3)
-							.map((wo) => `<li>• ${wo.title}</li>`)
+							.map((wo) => `<li class="map-popup-wo-item" data-workorder-id="${wo.id}">• ${wo.title}</li>`)
 							.join("")}
 						${singleLoc.workOrders.length > 3 ? `<li class="opacity-60">+${singleLoc.workOrders.length - 3} more</li>` : ""}
 					</ul>
@@ -256,7 +258,7 @@ async function displayWorkOrders(
 						<ul class="mt-2 text-xs">
 							${loc.workOrders
 								.slice(0, 3)
-								.map((wo) => `<li>• ${wo.title}</li>`)
+								.map((wo) => `<li class="map-popup-wo-item" data-workorder-id="${wo.id}">• ${wo.title}</li>`)
 								.join("")}
 							${loc.workOrders.length > 3 ? `<li class="opacity-60">+${loc.workOrders.length - 3} more</li>` : ""}
 						</ul>
@@ -266,6 +268,29 @@ async function displayWorkOrders(
 				L.marker([loc.lat, loc.lon]).addTo(leafletMap).bindPopup(popupContent);
 			}
 		} // Closes the if/else if/else for validGeocodedLocations
+
+		// Add consolidated event listener for clicks on work order items in popups
+		if (currentMapClickHandler) {
+			currentMapContainer.removeEventListener('click', currentMapClickHandler);
+		}
+		currentMapClickHandler = (event: MouseEvent) => {
+			let target = event.target as HTMLElement;
+			for (let i = 0; i < 3 && target && target !== currentMapContainer; i++) {
+				if (target.matches && target.matches('.map-popup-wo-item')) {
+					const workOrderId = target.dataset.workorderId;
+					if (workOrderId) {
+						dispatch('openworkorder', { id: workOrderId });
+						// Close the popup
+						if (leafletMap && (leafletMap as L.Map & { _popup?: L.Popup })._popup) {
+							(leafletMap as L.Map & { _popup?: L.Popup }).closePopup();
+						}
+					}
+					return;
+				}
+				target = target.parentNode as HTMLElement;
+			}
+		};
+		currentMapContainer.addEventListener('click', currentMapClickHandler);
 
 		// Ensure map size is correct after view operations, common to all paths
 		if (leafletMap) {
@@ -304,6 +329,10 @@ $effect(() => {
 });
 
 onDestroy(() => {
+	if (mapContainer && currentMapClickHandler) {
+		mapContainer.removeEventListener('click', currentMapClickHandler);
+		currentMapClickHandler = null;
+	}
 	if (leafletMap) {
 		leafletMap.remove();
 		leafletMap = null;
@@ -350,3 +379,15 @@ onDestroy(() => {
 		</div>
 	{/if}
 </div>
+
+<style>
+	/* Added :global because popups are added to a Leaflet pane outside component scope */
+	:global(.map-popup-wo-item) {
+		cursor: pointer;
+		padding: 2px 0; /* Optional: for better click target */
+	}
+	:global(.map-popup-wo-item:hover) {
+		text-decoration: underline;
+		color: hsl(var(--p)); /* Primary color for hover */
+	}
+</style>

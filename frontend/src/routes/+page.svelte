@@ -7,10 +7,13 @@ import {
 	IconErrorCrossCircle,
 	IconLightningBolt,
 } from "$lib/components/icons";
+import WorkOrderModal from "$lib/components/WorkOrderModal.svelte";
 import WorkOrdersMap from "$lib/components/maps/WorkOrdersMap.svelte";
 import StatCard from "$lib/components/StatCard.svelte";
+import { API_ENDPOINTS } from "$lib/constants";
 import { authStore } from "$lib/stores/authStore.svelte";
-import type { WorkOrdersResponse } from "$lib/types/work-orders";
+import { toastStore } from "$lib/stores/toastStore.svelte";
+import type { WorkOrder, WorkOrdersResponse } from "$lib/types/work-orders";
 import { createQuery } from "@tanstack/svelte-query";
 
 // Fetch work orders statistics
@@ -49,6 +52,43 @@ $effect(() => {
 		total: data.length,
 	};
 });
+
+// Modal state for viewing work orders (e.g., from map)
+let selectedWorkOrder = $state<WorkOrder | null>(null);
+let modalMode = $state<"view" | "edit" | "create">("view");
+let isModalOpen = $state(false);
+
+function openViewModal(workOrder: WorkOrder) {
+	selectedWorkOrder = workOrder;
+	modalMode = "view";
+	isModalOpen = true;
+}
+
+function closeModal() {
+	isModalOpen = false;
+	selectedWorkOrder = null;
+}
+
+async function handleOpenWorkOrderFromMap(event: CustomEvent<{ id: string }>) {
+	const workOrderId = event.detail.id;
+	if (!workOrderId) return;
+
+	try {
+		const workOrderData = await clientWrapper<WorkOrder>({
+			method: 'GET',
+			url: `${API_ENDPOINTS.WORK_ORDERS}/${workOrderId}`,
+		});
+
+		if (workOrderData) {
+			openViewModal(workOrderData);
+		} else {
+			toastStore.error("Could not fetch work order details.");
+		}
+	} catch (error) {
+		console.error("Error fetching work order details from map click:", error);
+		toastStore.error("Failed to load work order details. Please try again.");
+	}
+}
 </script>
 
 {#if authStore.isAuthenticated && authStore.user}
@@ -106,11 +146,18 @@ $effect(() => {
 			<!-- Map Section -->
 			<div class="card bg-base-100 shadow-sm w-full flex-grow flex flex-col rounded-lg">
 				<div class="card-body flex-grow flex flex-col p-0 sm:p-4 md:p-6">
-					<WorkOrdersMap />
+					<WorkOrdersMap on:openworkorder={handleOpenWorkOrderFromMap} />
 				</div>
 			</div>
 		{/if}
 	</div>
+
+	<WorkOrderModal
+		workOrder={selectedWorkOrder}
+		bind:mode={modalMode}
+		isOpen={isModalOpen}
+		onClose={closeModal}
+	/>
 {:else if authStore.loading}
 	<div class="min-h-screen flex items-center justify-center">
 		<div class="text-center">
