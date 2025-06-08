@@ -340,7 +340,13 @@ onDestroy(() => {
       {/if}
     </div>
 		<div class="flex-grow w-full rounded-b-xl bg-base-200 border border-base-300 relative overflow-hidden">
-			<div bind:this={mapContainer} class="absolute inset-0 w-full h-full" id="work-orders-map"></div>
+			<div bind:this={mapContainer} class="absolute inset-0 w-full h-full" id="work-orders-map">
+				{#if !isMapReady && !$workOrdersQuery.error && mappableWorkOrders.length > 0}
+					<div class="absolute inset-0 flex items-center justify-center bg-base-200/50 backdrop-blur-sm z-20">
+						<span class="loading loading-spinner loading-lg"></span>
+					</div>
+				{/if}
+			</div>
 		</div>
 	{/if}
 </div>

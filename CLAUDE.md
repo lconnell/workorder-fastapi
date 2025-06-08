@@ -195,3 +195,30 @@ workorder-fastapi/
 │   └── workflows/        # CI/CD pipelines including migration deployment
 └── Taskfile.yml          # Task automation configuration
 ```
+
+## Recent Frontend Refactoring Summary
+This section summarizes recent frontend refactoring work completed (as of current interaction, assuming June 2024).
+
+**Objective:**
+To enhance the SvelteKit frontend by improving code quality, increasing modularity, standardizing component patterns, and ensuring optimal use of DaisyUI, while adhering to existing global style configurations.
+
+**Key Changes Implemented:**
+
+*   **Centralized Icon System:**
+    *   All inline SVG icons were removed from components and pages.
+    *   A comprehensive set of reusable SVG icon components was created in `frontend/src/lib/components/icons/`.
+    *   An `index.ts` file was added for easy importing of these icons.
+
+*   **Component & Page Enhancements:**
+    *   `WorkOrderModal.svelte`: Modal control logic was refactored using Svelte's `bind:this`. Form validation display was standardized to use the existing `was-validated` CSS class pattern.
+    *   `Auth.svelte` & `auth/reset-password/+page.svelte`: Form validation display was made consistent with `WorkOrderModal.svelte`, utilizing the `was-validated` CSS pattern. Reactive clearing of validation states on mode change was implemented in `Auth.svelte`. Console logs were removed from `reset-password`.
+    *   `StatCard.svelte`: A new reusable component was created for displaying statistics on the dashboard (`frontend/src/routes/+page.svelte`), promoting DRY principles.
+    *   `Toast.svelte`: Refactored to use dynamic Svelte components (`<svelte:component>`) for displaying different icons based on toast type.
+    *   `WorkOrdersMap.svelte`: Enhanced with a loading indicator during map initialization and geocoding phases. Debug console logs were cleaned up.
+    *   General Cleanup: Various components (`FilterDrawer.svelte`, `profile/+page.svelte`, `workorders/+page.svelte`) were updated to use the new icon system.
+
+*   **Configuration Integrity:**
+    *   Per user directive, no modifications were made to `tailwind.config.ts`, `app.css`, or the global DaisyUI/Tailwind setup. All refactoring focused on Svelte component code and local styling within components where necessary.
+
+**Outcome:**
+The frontend codebase is now more modular, with a clear separation of concerns for UI elements like icons. Code duplication has been reduced, and maintainability is improved. The user experience was enhanced in some areas (e.g., map loading).

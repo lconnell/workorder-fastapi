@@ -317,6 +317,8 @@ workorder-fastapi/
 │   │   ├── lib/          # Shared utilities and components
 │   │   │   ├── api/      # Generated API client and types
 │   │   │   ├── components/ # Reusable Svelte components
+│   │   │   │   ├── icons/  # Centralized SVG icon components
+│   │   │   │   └── ...     # Other shared UI components (e.g., StatCard, Modals)
 │   │   │   ├── stores/   # Svelte stores for state management
 │   │   │   └── services/ # Frontend services (geocoding, etc.)
 │   │   └── routes/       # SvelteKit pages and layouts
