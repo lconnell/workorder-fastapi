@@ -23,9 +23,15 @@ function getAlertClasses(type: string) {
 	}
 }
 
+interface IconProps {
+	class?: string;
+	size?: string;
+	strokeWidth?: number;
+}
+
 function getIconComponent(
 	type: string,
-): ComponentType<SvelteComponent<{ class?: string; size?: string }>> {
+): ComponentType<SvelteComponent<IconProps>> {
 	switch (type) {
 		case "success":
 			return IconCheckCircle;

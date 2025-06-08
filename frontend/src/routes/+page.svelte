@@ -1,5 +1,6 @@
 <script lang="ts">
 import { clientWrapper } from "$lib/api/client-wrapper";
+import StatCard from "$lib/components/StatCard.svelte";
 import {
 	IconArchiveBox,
 	IconCheckCircle,
@@ -8,7 +9,6 @@ import {
 	IconLightningBolt,
 } from "$lib/components/icons";
 import WorkOrdersMap from "$lib/components/maps/WorkOrdersMap.svelte";
-import StatCard from "$lib/components/StatCard.svelte";
 import { authStore } from "$lib/stores/authStore.svelte";
 import type { WorkOrdersResponse } from "$lib/types/work-orders";
 import { createQuery } from "@tanstack/svelte-query";

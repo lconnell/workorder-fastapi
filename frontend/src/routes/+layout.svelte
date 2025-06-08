@@ -2,6 +2,7 @@
 import "../app.css";
 import { goto } from "$app/navigation";
 import { page } from "$app/stores";
+import Toast from "$lib/components/Toast.svelte";
 import {
 	IconAppLogo,
 	IconHome,
@@ -9,7 +10,6 @@ import {
 	IconMenu,
 	IconUser,
 } from "$lib/components/icons";
-import Toast from "$lib/components/Toast.svelte";
 import { queryClient } from "$lib/queryClient";
 import { authStore } from "$lib/stores/authStore.svelte";
 import { QueryClientProvider } from "@tanstack/svelte-query";

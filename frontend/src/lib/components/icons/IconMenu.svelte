@@ -1,9 +1,12 @@
 <script lang="ts">
-  export let size = "1.25em"; // Corresponds to h-5 w-5 or 20px if 1em=16px
-  export let strokeWidth = 2;
-  // biome-ignore lint/style/useConst: Let for Svelte prop
-  let klass = "";
-  export { klass as class };
+// biome-ignore lint/style/useConst: Svelte props need to be let for binding
+let size = "1.25em";
+export { size, strokeWidth }; // Corresponds to h-5 w-5 or 20px if 1em=16px
+// biome-ignore lint/style/useConst: Svelte props need to be let for binding
+let strokeWidth = 2;
+// biome-ignore lint/style/useConst: Let for Svelte prop
+let klass = "";
+export { klass as class };
 </script>
 
 <svg

@@ -1,23 +1,26 @@
 <script lang="ts">
 import type { ComponentType, SvelteComponent } from "svelte";
 
+interface IconProps {
+	class?: string;
+	size?: string;
+	strokeWidth?: number;
+}
+
 interface Props {
 	title: string;
 	value: number | string;
-	iconComponent: ComponentType<SvelteComponent<{ class?: string; size?: string }>>;
+	iconComponent: ComponentType<SvelteComponent<IconProps>>;
 	link: string;
 	colorClass: string;
 	subtitle?: string;
 }
 
-const {
-	title,
-	value,
-	iconComponent,
-	link,
-	colorClass,
-	subtitle,
-}: Props = $props();
+const { title, value, iconComponent, link, colorClass, subtitle }: Props =
+	$props();
+
+// Assign to a capitalized variable to use as a dynamic component
+const Icon = iconComponent;
 </script>
 
 <div class="card bg-base-100 shadow-sm hover:shadow-md transition-shadow rounded-lg">
@@ -31,7 +34,7 @@ const {
 				{/if}
 			</div>
 			<div class={colorClass}>
-				<iconComponent class="w-8 h-8 stroke-current" />
+				<Icon class="w-8 h-8 stroke-current" />
 			</div>
 		</div>
 	</a>

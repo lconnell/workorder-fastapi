@@ -12,6 +12,10 @@ import { createQuery } from "@tanstack/svelte-query";
 import type * as L from "leaflet";
 import { onDestroy, tick } from "svelte";
 
+// Props interface removed since we're using direct navigation via anchor links
+
+// Note: Using simple anchor links in popups for navigation
+
 // biome-ignore lint/style/useConst: Svelte 5 bind:this requires let
 let mapContainer = $state<HTMLDivElement | null>(null);
 let leafletMap: L.Map | null = $state(null);
@@ -57,6 +61,8 @@ $effect(() => {
 
 	mappableWorkOrders = filtered;
 });
+
+// Note: Using simple anchor links in popups for navigation
 
 // Load Leaflet library
 async function loadLeaflet() {
@@ -231,7 +237,10 @@ async function displayWorkOrders(
 					<ul class="mt-2 text-xs">
 						${singleLoc.workOrders
 							.slice(0, 3)
-							.map((wo) => `<li>• ${wo.title}</li>`)
+							.map(
+								(wo) =>
+									`<li>• <a href="/workorders?viewId=${wo.id}" class="text-primary hover:underline">${wo.title}</a></li>`,
+							)
 							.join("")}
 						${singleLoc.workOrders.length > 3 ? `<li class="opacity-60">+${singleLoc.workOrders.length - 3} more</li>` : ""}
 					</ul>
@@ -256,7 +265,10 @@ async function displayWorkOrders(
 						<ul class="mt-2 text-xs">
 							${loc.workOrders
 								.slice(0, 3)
-								.map((wo) => `<li>• ${wo.title}</li>`)
+								.map(
+									(wo) =>
+										`<li>• <a href="/workorders?viewId=${wo.id}" class="text-primary hover:underline">${wo.title}</a></li>`,
+								)
 								.join("")}
 							${loc.workOrders.length > 3 ? `<li class="opacity-60">+${loc.workOrders.length - 3} more</li>` : ""}
 						</ul>

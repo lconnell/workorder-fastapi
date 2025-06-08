@@ -1,8 +1,7 @@
 <script lang="ts">
 import { goto } from "$app/navigation";
 import { supabase } from "$lib/supabaseClient";
-import { onMount }
-from "svelte";
+import { onMount } from "svelte";
 
 // biome-ignore lint/style/useConst: Svelte 5 binding requires let
 let password = $state("");
@@ -11,6 +10,7 @@ let confirmPassword = $state("");
 let error = $state<string | null>(null);
 let loading = $state(false);
 let success = $state(false);
+// biome-ignore lint/style/useConst: Svelte 5 bind:this requires let
 let formElement: HTMLFormElement | null = null;
 
 onMount(async () => {
@@ -84,7 +84,8 @@ async function doSubmit() {
           Enter your new password below.
         </p>
 
-        {#if error && !success} {/* Only show general error if not success */}
+        <!-- Only show general error if not success -->
+        {#if error && !success}
           <div class="alert alert-error">
             <span>{error}</span>
           </div>

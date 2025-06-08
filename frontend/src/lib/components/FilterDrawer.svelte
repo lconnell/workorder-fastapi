@@ -1,6 +1,6 @@
 <script lang="ts">
-import type { Snippet } from "svelte";
 import { IconClose } from "$lib/components/icons";
+import type { Snippet } from "svelte";
 
 interface Props {
 	drawerId: string;

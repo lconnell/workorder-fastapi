@@ -1,6 +1,9 @@
 <script lang="ts">
+import { replaceState } from "$app/navigation";
+import { page } from "$app/stores";
 import { clientWrapper } from "$lib/api/client-wrapper";
 import FilterDrawer from "$lib/components/FilterDrawer.svelte";
+import WorkOrderModal from "$lib/components/WorkOrderModal.svelte";
 import {
 	IconAppLogo,
 	IconErrorCrossCircle,
@@ -9,7 +12,6 @@ import {
 	IconPlus,
 	IconSortArrow,
 } from "$lib/components/icons";
-import WorkOrderModal from "$lib/components/WorkOrderModal.svelte";
 import { API_ENDPOINTS } from "$lib/constants";
 import type { WorkOrder, WorkOrdersResponse } from "$lib/types/work-orders";
 import {
@@ -18,6 +20,7 @@ import {
 } from "$lib/utils/badge-styles";
 import { formatDate } from "$lib/utils/date-formatter";
 import { createQuery } from "@tanstack/svelte-query";
+import { onMount } from "svelte";
 
 // Filter states
 let statusFilter = $state<string[]>([]);
@@ -152,6 +155,27 @@ function closeModal() {
 	isModalOpen = false;
 	selectedWorkOrder = null;
 }
+
+// Handle viewId query parameter from map navigation
+onMount(() => {
+	const unsubscribe = page.subscribe(($page) => {
+		const viewId = $page.url.searchParams.get("viewId");
+		if (viewId && $workOrdersQuery?.data?.data) {
+			const workOrder = $workOrdersQuery.data.data.find(
+				(wo) => wo.id === viewId,
+			);
+			if (workOrder) {
+				openViewModal(workOrder);
+				// Remove the query parameter after handling it
+				const url = new URL($page.url);
+				url.searchParams.delete("viewId");
+				replaceState(url, {});
+			}
+		}
+	});
+
+	return unsubscribe;
+});
 
 function openFilterSheet() {
 	// Copy current filters to temp states

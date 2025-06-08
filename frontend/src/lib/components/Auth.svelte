@@ -20,6 +20,7 @@ let error = $state<string | null>(null);
 let success = $state<string | null>(null);
 let currentMode = $state(mode);
 let showForgotPassword = $state(false);
+// biome-ignore lint/style/useConst: Svelte 5 bind:this requires let
 let formElement: HTMLFormElement | null = null;
 
 async function doSubmit() {
