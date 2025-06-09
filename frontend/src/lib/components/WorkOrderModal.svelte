@@ -12,10 +12,10 @@ import {
 	getModalStatusBadgeClasses,
 } from "$lib/utils/badge-styles";
 import { formatDateTime } from "$lib/utils/date-formatter";
+import { logger } from "$lib/utils/logger";
 import { createMutation, useQueryClient } from "@tanstack/svelte-query";
 
 interface LocationCreate {
-	name: string;
 	address?: string | null;
 	city?: string | null;
 	state_province?: string | null;
@@ -25,7 +25,6 @@ interface LocationCreate {
 
 interface Location {
 	id: string;
-	name: string;
 	address?: string | null;
 	city?: string | null;
 	state_province?: string | null;
@@ -115,6 +114,15 @@ const updateMutation = createMutation({
 		queryClient.invalidateQueries({ queryKey: ["workOrders"] });
 		onClose();
 	},
+	onError: (error) => {
+		logger.error("Failed to update work order", "WorkOrderModal", {
+			error,
+			workOrderId: workOrder?.id,
+		});
+		toastStore.error(
+			`Failed to update work order: ${error instanceof Error ? error.message : "Unknown error"}`,
+		);
+	},
 });
 
 // Create mutation
@@ -130,6 +138,12 @@ const workOrderCreateMutation = createMutation({
 		toastStore.success("Work order created successfully");
 		queryClient.invalidateQueries({ queryKey: ["workOrders"] });
 		onClose();
+	},
+	onError: (error) => {
+		logger.error("Failed to create work order", "WorkOrderModal", { error });
+		toastStore.error(
+			`Failed to create work order: ${error instanceof Error ? error.message : "Unknown error"}`,
+		);
 	},
 });
 
@@ -150,7 +164,7 @@ async function handleSubmit() {
 		// Native browser validation will handle individual field checks via form.checkValidity()
 		// Toast messages for individual fields are removed as hints will appear under fields
 
-		// Create location if any address fields are provided
+		// Handle location logic - only create new location if data has changed or if it's a new work order
 		if (
 			editForm.location_address.trim() ||
 			editForm.location_city.trim() ||
@@ -163,28 +177,93 @@ async function handleSubmit() {
 				return;
 			}
 
-			isCreatingLocation = true;
+			// Check if location data has changed from existing work order location
+			const hasLocationChanged =
+				mode === "create" ||
+				!workOrder?.location ||
+				editForm.location_address.trim() !==
+					(workOrder.location.address || "") ||
+				editForm.location_city.trim() !== (workOrder.location.city || "") ||
+				editForm.location_state.trim() !==
+					(workOrder.location.state_province || "") ||
+				editForm.location_zip.trim() !== (workOrder.location.postal_code || "");
 
-			// Send clean, separate address fields - let backend construct complete address
-			const locationData: LocationCreate = {
-				name: editForm.location_address.trim() || "Work Location",
-				address: editForm.location_address.trim() || null,
-				city: editForm.location_city.trim() || null,
-				state_province: editForm.location_state.trim() || null,
-				postal_code: editForm.location_zip.trim() || null,
-				country: "USA",
-			};
+			if (hasLocationChanged) {
+				logger.debug(
+					"Location data has changed, creating new location",
+					"WorkOrderModal",
+					{
+						mode,
+						existingLocation: workOrder?.location
+							? {
+									address: workOrder.location.address,
+									city: workOrder.location.city,
+									state: workOrder.location.state_province,
+									zip: workOrder.location.postal_code,
+								}
+							: null,
+						newLocation: {
+							address: editForm.location_address,
+							city: editForm.location_city,
+							state: editForm.location_state,
+							zip: editForm.location_zip,
+						},
+					},
+				);
 
-			const locationResult = await clientWrapper<Location>({
-				method: "POST",
-				url: API_ENDPOINTS.LOCATIONS,
-				data: locationData,
-			});
+				isCreatingLocation = true;
 
-			locationId = locationResult.id;
-			isCreatingLocation = false;
+				// Send clean, separate address fields - let backend construct complete address
+				const locationData: LocationCreate = {
+					address: editForm.location_address.trim() || null,
+					city: editForm.location_city.trim() || null,
+					state_province: editForm.location_state.trim() || null,
+					postal_code: editForm.location_zip.trim() || null,
+					country: "USA",
+				};
+
+				logger.debug("Sending location data to backend", "WorkOrderModal", {
+					locationData,
+				});
+
+				const locationResult = await clientWrapper<Location>({
+					method: "POST",
+					url: API_ENDPOINTS.LOCATIONS,
+					data: locationData,
+				});
+
+				logger.info("Location created successfully", "WorkOrderModal", {
+					locationId: locationResult.id,
+				});
+
+				// Check if location has coordinates and warn user if not
+				if (!locationResult.latitude || !locationResult.longitude) {
+					toastStore.warning(
+						"Location created but could not be mapped. Address may be invalid or geocoding service unavailable.",
+					);
+					logger.warning(
+						"Location created without coordinates",
+						"WorkOrderModal",
+						{ locationId: locationResult.id, locationData },
+					);
+				}
+
+				locationId = locationResult.id;
+				isCreatingLocation = false;
+			} else {
+				// Location data hasn't changed, use existing location ID
+				logger.debug(
+					"Location data unchanged, using existing location ID",
+					"WorkOrderModal",
+					{ locationId: editForm.location_id },
+				);
+				locationId = editForm.location_id;
+			}
 		} else if (editForm.location_id) {
 			// Use existing location ID if provided
+			logger.debug("Using existing location ID from form", "WorkOrderModal", {
+				locationId: editForm.location_id,
+			});
 			locationId = editForm.location_id;
 		}
 
@@ -196,40 +275,77 @@ async function handleSubmit() {
 				priority: editForm.priority as WorkOrderCreate["priority"],
 			};
 
-			// Add optional fields if they have values
-			if (editForm.description) createData.description = editForm.description;
-			if (editForm.assigned_to_user_id)
-				createData.assigned_to_user_id = editForm.assigned_to_user_id;
-			if (locationId) createData.location_id = locationId;
+			// Add optional fields if they have values (handle empty strings properly)
+			if (editForm.description.trim()) {
+				createData.description = editForm.description.trim();
+			}
+			if (editForm.assigned_to_user_id.trim()) {
+				createData.assigned_to_user_id = editForm.assigned_to_user_id.trim();
+			}
+			if (locationId) {
+				createData.location_id = locationId;
+			}
 
+			logger.logFormSubmission("WorkOrderCreate", true, { createData });
 			$workOrderCreateMutation.mutate(createData);
 		} else if (mode === "edit" && workOrder) {
 			// Handle edit mode
 			const updateData: WorkOrderUpdate = {};
 
-			if (editForm.title !== workOrder.title) updateData.title = editForm.title;
-			if (editForm.description !== workOrder.description)
-				updateData.description = editForm.description;
-			if (editForm.status !== workOrder.status)
+			// Only include fields that have actually changed and handle empty strings properly
+			if (editForm.title.trim() !== workOrder.title) {
+				updateData.title = editForm.title.trim();
+			}
+
+			const newDescription = editForm.description.trim() || undefined;
+			const currentDescription = workOrder.description || undefined;
+			if (newDescription !== currentDescription) {
+				updateData.description = newDescription;
+			}
+
+			if (editForm.status !== workOrder.status) {
 				updateData.status = editForm.status as WorkOrder["status"];
-			if (editForm.priority !== workOrder.priority)
+			}
+
+			if (editForm.priority !== workOrder.priority) {
 				updateData.priority = editForm.priority as WorkOrder["priority"];
-			if (editForm.assigned_to_user_id !== workOrder.assigned_to_user_id)
-				updateData.assigned_to_user_id =
-					editForm.assigned_to_user_id || undefined;
+			}
+
+			const newAssignedUserId =
+				editForm.assigned_to_user_id.trim() || undefined;
+			const currentAssignedUserId = workOrder.assigned_to_user_id || undefined;
+			if (newAssignedUserId !== currentAssignedUserId) {
+				updateData.assigned_to_user_id = newAssignedUserId;
+			}
 
 			// Handle location updates
 			const currentLocationId = workOrder.location_id;
 			if (locationId !== currentLocationId) {
-				updateData.location_id = locationId;
+				updateData.location_id = locationId || undefined;
 			}
 
 			if (Object.keys(updateData).length > 0) {
+				logger.logFormSubmission("WorkOrderUpdate", true, {
+					updateData,
+					workOrderId: workOrder.id,
+				});
 				$updateMutation.mutate(updateData);
+			} else {
+				logger.info(
+					"No changes detected in work order form",
+					"WorkOrderModal",
+					{ workOrderId: workOrder.id },
+				);
+				toastStore.info("No changes to save");
+				onClose();
 			}
 		}
 	} catch (error) {
-		console.error("Error in handleSubmit:", error);
+		logger.error("Error in handleSubmit", "WorkOrderModal", {
+			error,
+			mode,
+			workOrderId: workOrder?.id,
+		});
 		isCreatingLocation = false;
 		// Show error message to the user
 		toastStore.error(
@@ -241,11 +357,19 @@ async function handleSubmit() {
 async function handleDelete() {
 	if (!workOrder) return;
 
+	logger.logUserAction("delete_work_order_confirm", "WorkOrderModal", {
+		workOrderId: workOrder.id,
+		title: workOrder.title,
+	});
+
 	if (
 		!confirm(
 			`Are you sure you want to delete "${workOrder.title}"? This action cannot be undone.`,
 		)
 	) {
+		logger.logUserAction("delete_work_order_cancelled", "WorkOrderModal", {
+			workOrderId: workOrder.id,
+		});
 		return;
 	}
 
@@ -256,11 +380,17 @@ async function handleDelete() {
 		});
 
 		// Refresh the work orders list and close modal
+		logger.logUserAction("delete_work_order_success", "WorkOrderModal", {
+			workOrderId: workOrder.id,
+		});
 		toastStore.success("Work order deleted successfully");
 		queryClient.invalidateQueries({ queryKey: ["workOrders"] });
 		onClose();
 	} catch (error) {
-		console.error("Error deleting work order:", error);
+		logger.error("Failed to delete work order", "WorkOrderModal", {
+			error,
+			workOrderId: workOrder.id,
+		});
 		toastStore.error("Failed to delete work order. Please try again.");
 	}
 }
@@ -271,6 +401,10 @@ async function handleDelete() {
 $effect(() => {
 	if (modalElement) {
 		if (isOpen) {
+			logger.logUserAction("modal_opened", "WorkOrderModal", {
+				mode,
+				workOrderId: workOrder?.id,
+			});
 			modalElement.showModal();
 			// Clear validation state when modal opens
 			const form = document.querySelector("#work-order-form");
@@ -281,6 +415,10 @@ $effect(() => {
 				}
 			}
 		} else {
+			logger.logUserAction("modal_closed", "WorkOrderModal", {
+				mode,
+				workOrderId: workOrder?.id,
+			});
 			modalElement.close();
 		}
 	}
@@ -356,7 +494,7 @@ $effect(() => {
 
             <div>
               <h4 class="text-sm font-medium text-base-content/70 mb-2">Address</h4>
-              <div class="text-base">{workOrder?.location?.address || workOrder?.location?.name}</div>
+              <div class="text-base">{workOrder?.location?.address || ""}</div>
               {#if workOrder?.location?.city || workOrder?.location?.state_province || workOrder?.location?.postal_code}
                 <div class="text-base-content/70 mt-1">
                   {[workOrder?.location?.city, [workOrder?.location?.state_province, workOrder?.location?.postal_code].filter(Boolean).join(' ')].filter(Boolean).join(', ')}
@@ -399,7 +537,10 @@ $effect(() => {
         <form method="dialog" class="inline-flex gap-2">
           <button class="btn">Close</button>
         </form>
-        <button class="btn btn-primary" onclick={() => mode = "edit"}>Edit</button>
+        <button class="btn btn-primary" onclick={() => {
+          logger.logUserAction("switch_to_edit_mode", "WorkOrderModal", { workOrderId: workOrder?.id });
+          mode = "edit";
+        }}>Edit</button>
       </div>
 
     {:else if mode === "edit" || mode === "create"}

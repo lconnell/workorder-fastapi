@@ -40,10 +40,9 @@ export type Database = {
 					city: string | null;
 					country: string | null;
 					created_at: string | null;
-					id: number;
+					id: string;
 					latitude: number | null;
 					longitude: number | null;
-					name: string;
 					postal_code: string | null;
 					state_province: string | null;
 					updated_at: string | null;
@@ -53,10 +52,9 @@ export type Database = {
 					city?: string | null;
 					country?: string | null;
 					created_at?: string | null;
-					id?: number;
+					id?: string;
 					latitude?: number | null;
 					longitude?: number | null;
-					name: string;
 					postal_code?: string | null;
 					state_province?: string | null;
 					updated_at?: string | null;
@@ -66,10 +64,9 @@ export type Database = {
 					city?: string | null;
 					country?: string | null;
 					created_at?: string | null;
-					id?: number;
+					id?: string;
 					latitude?: number | null;
 					longitude?: number | null;
-					name?: string;
 					postal_code?: string | null;
 					state_province?: string | null;
 					updated_at?: string | null;
@@ -134,7 +131,7 @@ export type Database = {
 					id: number;
 					updated_at: string | null;
 					user_id: string;
-					work_order_id: number;
+					work_order_id: string | null;
 				};
 				Insert: {
 					content: string;
@@ -142,7 +139,7 @@ export type Database = {
 					id?: number;
 					updated_at?: string | null;
 					user_id: string;
-					work_order_id: number;
+					work_order_id?: string | null;
 				};
 				Update: {
 					content?: string;
@@ -150,7 +147,7 @@ export type Database = {
 					id?: number;
 					updated_at?: string | null;
 					user_id?: string;
-					work_order_id?: number;
+					work_order_id?: string | null;
 				};
 				Relationships: [
 					{
@@ -169,7 +166,7 @@ export type Database = {
 					notes: string | null;
 					part_id: number;
 					quantity_used: number;
-					work_order_id: number;
+					work_order_id: string | null;
 				};
 				Insert: {
 					added_at?: string | null;
@@ -177,7 +174,7 @@ export type Database = {
 					notes?: string | null;
 					part_id: number;
 					quantity_used?: number;
-					work_order_id: number;
+					work_order_id?: string | null;
 				};
 				Update: {
 					added_at?: string | null;
@@ -185,7 +182,7 @@ export type Database = {
 					notes?: string | null;
 					part_id?: number;
 					quantity_used?: number;
-					work_order_id?: number;
+					work_order_id?: string | null;
 				};
 				Relationships: [
 					{
@@ -211,8 +208,8 @@ export type Database = {
 					created_by_user_id: string;
 					description: string | null;
 					due_date: string | null;
-					id: number;
-					location_id: number | null;
+					id: string;
+					location_id: string | null;
 					priority: Database["public"]["Enums"]["work_order_priority"];
 					status: Database["public"]["Enums"]["work_order_status"];
 					title: string;
@@ -224,8 +221,8 @@ export type Database = {
 					created_by_user_id: string;
 					description?: string | null;
 					due_date?: string | null;
-					id?: number;
-					location_id?: number | null;
+					id?: string;
+					location_id?: string | null;
 					priority?: Database["public"]["Enums"]["work_order_priority"];
 					status?: Database["public"]["Enums"]["work_order_status"];
 					title: string;
@@ -237,8 +234,8 @@ export type Database = {
 					created_by_user_id?: string;
 					description?: string | null;
 					due_date?: string | null;
-					id?: number;
-					location_id?: number | null;
+					id?: string;
+					location_id?: string | null;
 					priority?: Database["public"]["Enums"]["work_order_priority"];
 					status?: Database["public"]["Enums"]["work_order_status"];
 					title?: string;

@@ -20,7 +20,6 @@ import {
 } from "$lib/utils/badge-styles";
 import { formatDate } from "$lib/utils/date-formatter";
 import { createQuery } from "@tanstack/svelte-query";
-import { onMount } from "svelte";
 
 // Filter states
 let statusFilter = $state<string[]>([]);
@@ -43,8 +42,10 @@ let isFilterSheetOpen = $state(false);
 let tempStatusFilter = $state<string[]>([]);
 let tempPriorityFilter = $state<string[]>([]);
 
-// Define reactive query options using $derived
-const queryOptions = $derived({
+// Known Issue: TanStack Query v5.75.0 + Svelte 5 reactivity warning
+// Functionality works correctly despite warning. Future versions should resolve this.
+// Alternative: Use $effect to manually invalidate queries when currentPage changes
+const workOrdersQuery = createQuery({
 	queryKey: ["workOrders", currentPage],
 	queryFn: async () => {
 		const response = await clientWrapper<WorkOrdersResponse>({
@@ -54,9 +55,6 @@ const queryOptions = $derived({
 		return response;
 	},
 });
-
-// Pass the derived options to createQuery, and make workOrdersQuery itself derived
-const workOrdersQuery = $derived(createQuery(queryOptions));
 
 // Filter and sort work orders (client-side)
 let filteredAndSortedWorkOrders = $state<WorkOrder[]>([]);
@@ -156,25 +154,33 @@ function closeModal() {
 	selectedWorkOrder = null;
 }
 
-// Handle viewId query parameter from map navigation
-onMount(() => {
-	const unsubscribe = page.subscribe(($page) => {
-		const viewId = $page.url.searchParams.get("viewId");
-		if (viewId && $workOrdersQuery?.data?.data) {
-			const workOrder = $workOrdersQuery.data.data.find(
-				(wo) => wo.id === viewId,
-			);
-			if (workOrder) {
-				openViewModal(workOrder);
-				// Remove the query parameter after handling it
-				const url = new URL($page.url);
-				url.searchParams.delete("viewId");
-				replaceState(url, {});
-			}
-		}
-	});
+// Handle viewId query parameter from map navigation using Svelte 5 reactive pattern
+let lastProcessedViewId = $state<string | null>(null);
 
-	return unsubscribe;
+$effect(() => {
+	const viewId = $page.url.searchParams.get("viewId");
+
+	// Only process if we have a viewId, data is available, and we haven't processed this viewId yet
+	if (
+		viewId &&
+		viewId !== lastProcessedViewId &&
+		$workOrdersQuery?.data?.data
+	) {
+		const workOrder = $workOrdersQuery.data.data.find((wo) => wo.id === viewId);
+		if (workOrder) {
+			lastProcessedViewId = viewId;
+			openViewModal(workOrder);
+			// Remove the query parameter after handling it
+			const url = new URL($page.url);
+			url.searchParams.delete("viewId");
+			replaceState(url, {});
+		}
+	}
+
+	// Reset tracking when viewId is removed
+	if (!viewId) {
+		lastProcessedViewId = null;
+	}
 });
 
 function openFilterSheet() {
@@ -307,7 +313,7 @@ function applyFilters() {
                   {#if workOrder.location}
                     <div class="text-sm opacity-50">
                       <IconLocationPin class="inline mr-1" />
-                      {workOrder.location.address || workOrder.location.name}
+                      {workOrder.location.address || `${workOrder.location.city}, ${workOrder.location.state_province}`}
                     </div>
                   {/if}
                 </td>

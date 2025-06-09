@@ -4,6 +4,7 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from app.services.supabase import get_supabase_client
+from app.utils.debug import debug_log, debug_log_exception
 
 security = HTTPBearer()
 
@@ -111,5 +112,15 @@ async def get_current_user_from_token(
     credentials: HTTPAuthorizationCredentials = Depends(security),
 ) -> dict[str, Any]:
     """Dependency to get current user from JWT token."""
-    auth_service = AuthService()
-    return await auth_service.get_current_user(credentials.credentials)
+    debug_log(
+        f"get_current_user_from_token called with token: "
+        f"{credentials.credentials[:50]}..."
+    )
+    try:
+        auth_service = AuthService()
+        user = await auth_service.get_current_user(credentials.credentials)
+        debug_log(f"User authenticated successfully: {user.get('id', 'Unknown')}")
+        return user
+    except Exception as e:
+        debug_log_exception("Authentication failed", e)
+        raise

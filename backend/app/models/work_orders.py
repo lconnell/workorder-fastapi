@@ -19,7 +19,6 @@ class WorkOrderPriority(str, Enum):
 
 class Location(BaseModel):
     id: str  # UUID as string
-    name: str
     address: str | None = None
     city: str | None = None
     state_province: str | None = None

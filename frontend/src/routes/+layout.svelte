@@ -12,6 +12,7 @@ import {
 } from "$lib/components/icons";
 import { queryClient } from "$lib/queryClient";
 import { authStore } from "$lib/stores/authStore.svelte";
+import { getNavLinkClasses } from "$lib/utils/navigation";
 import { QueryClientProvider } from "@tanstack/svelte-query";
 import { onMount } from "svelte";
 
@@ -57,8 +58,8 @@ $effect(() => {
         </button>
         <ul class="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-base-100 rounded-box w-52">
           {#if authStore.isAuthenticated}
-            <li><a href="/" class="{$page.url.pathname === '/' ? 'bg-primary text-primary-content' : ''}">Dashboard</a></li>
-            <li><a href="/workorders" class="{$page.url.pathname.startsWith('/workorders') ? 'bg-primary text-primary-content' : ''}">Work Orders</a></li>
+            <li><a href="/" class="{getNavLinkClasses($page.url.pathname, '/')}">Dashboard</a></li>
+            <li><a href="/workorders" class="{getNavLinkClasses($page.url.pathname, '/workorders')}">Work Orders</a></li>
           {/if}
         </ul>
       </div>
@@ -71,13 +72,13 @@ $effect(() => {
       {#if authStore.isAuthenticated}
         <ul class="menu menu-horizontal px-1">
           <li>
-            <a href="/" class="font-medium {$page.url.pathname === '/' ? 'bg-primary text-primary-content' : ''}">
+            <a href="/" class="font-medium {getNavLinkClasses($page.url.pathname, '/')}">
               <IconHome class="mr-1" />
               Dashboard
             </a>
           </li>
           <li>
-            <a href="/workorders" class="font-medium {$page.url.pathname.startsWith('/workorders') ? 'bg-primary text-primary-content' : ''}">
+            <a href="/workorders" class="font-medium {getNavLinkClasses($page.url.pathname, '/workorders')}">
               <IconAppLogo size="1.25em" class="mr-1" />
               Work Orders
             </a>

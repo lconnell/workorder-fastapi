@@ -1,6 +1,5 @@
 export interface Location {
 	id: string;
-	name: string;
 	address?: string;
 	city?: string;
 	state_province?: string;
@@ -51,17 +50,4 @@ export interface WorkOrderUpdate {
 	priority?: "Low" | "Medium" | "High";
 	location_id?: string;
 	assigned_to_user_id?: string;
-}
-
-export interface GeocodedLocation {
-	lat: number;
-	lon: number;
-	address: string;
-	workOrderCount: number;
-	workOrders: WorkOrder[];
-}
-
-export interface GeocodingResult {
-	lat: number;
-	lon: number;
 }

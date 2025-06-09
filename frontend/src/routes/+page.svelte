@@ -9,6 +9,7 @@ import {
 	IconLightningBolt,
 } from "$lib/components/icons";
 import WorkOrdersMap from "$lib/components/maps/WorkOrdersMap.svelte";
+import { WORK_ORDER_STATUSES } from "$lib/constants/work-orders";
 import { authStore } from "$lib/stores/authStore.svelte";
 import type { WorkOrdersResponse } from "$lib/types/work-orders";
 import { createQuery } from "@tanstack/svelte-query";
@@ -42,10 +43,14 @@ $effect(() => {
 
 	const data = $workOrdersQuery.data.data;
 	stats = {
-		open: data.filter((wo) => wo.status === "Open").length,
-		inProgress: data.filter((wo) => wo.status === "In Progress").length,
-		completed: data.filter((wo) => wo.status === "Completed").length,
-		onHold: data.filter((wo) => wo.status === "On Hold").length,
+		open: data.filter((wo) => wo.status === WORK_ORDER_STATUSES.OPEN).length,
+		inProgress: data.filter(
+			(wo) => wo.status === WORK_ORDER_STATUSES.IN_PROGRESS,
+		).length,
+		completed: data.filter((wo) => wo.status === WORK_ORDER_STATUSES.COMPLETED)
+			.length,
+		onHold: data.filter((wo) => wo.status === WORK_ORDER_STATUSES.ON_HOLD)
+			.length,
 		total: data.length,
 	};
 });
@@ -75,21 +80,21 @@ $effect(() => {
 					title="Open"
 					value={stats.open}
 					iconComponent={IconLightningBolt}
-					link="/workorders?status=Open"
+					link={`/workorders?status=${encodeURIComponent(WORK_ORDER_STATUSES.OPEN)}`}
 					colorClass="text-primary"
 				/>
 				<StatCard
 					title="In Progress"
 					value={stats.inProgress}
 					iconComponent={IconClock}
-					link="/workorders?status=In Progress"
+					link={`/workorders?status=${encodeURIComponent(WORK_ORDER_STATUSES.IN_PROGRESS)}`}
 					colorClass="text-warning"
 				/>
 				<StatCard
 					title="Completed"
 					value={stats.completed}
 					iconComponent={IconCheckCircle}
-					link="/workorders?status=Completed"
+					link={`/workorders?status=${encodeURIComponent(WORK_ORDER_STATUSES.COMPLETED)}`}
 					colorClass="text-success"
 					subtitle="this month"
 				/>

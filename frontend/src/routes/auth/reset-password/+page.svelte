@@ -11,7 +11,7 @@ let error = $state<string | null>(null);
 let loading = $state(false);
 let success = $state(false);
 // biome-ignore lint/style/useConst: Svelte 5 bind:this requires let
-let formElement: HTMLFormElement | null = null;
+let formElement = $state<HTMLFormElement | null>(null);
 
 onMount(async () => {
 	// Give Supabase time to process the URL hash and establish session
