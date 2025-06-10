@@ -11,6 +11,10 @@
 - **work_orders** table has `location_id` (UUID, nullable) that references `locations.id`
 - **locations** table stores unique address combinations with geocoding data
 - Foreign key constraint ensures referential integrity
+- **Automatic cleanup**: Locations have a `reference_count` that tracks usage
+  - When a work order is deleted, the count decrements
+  - When count reaches 0, the location is automatically deleted
+  - Prevents orphaned locations from accumulating
 
 ## Location Management
 
@@ -46,6 +50,9 @@
 - Helps trace issues like the 500 error we fixed with location creation
 
 
-* active work order text on map view
+* active work order displayed message on map view
 * use lighter borders for inputs. see image
 * consolidate, cleanup notes/docs (architeture?)
+* create non-expiring jwt for llm usage
+* atlas project management
+* claude PRD's (Project Requirements Document)

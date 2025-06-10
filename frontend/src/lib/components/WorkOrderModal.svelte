@@ -70,8 +70,8 @@ let isCreatingLocation = $state(false);
 
 // Initialize form when work order changes or when creating new
 $effect(() => {
-	if (mode === "create") {
-		// Initialize with default values for create mode
+	if (mode === "create" && isOpen) {
+		// Always reset to default values for create mode when modal opens
 		editForm = {
 			title: "",
 			description: "",
@@ -406,6 +406,7 @@ $effect(() => {
 				workOrderId: workOrder?.id,
 			});
 			modalElement.showModal();
+
 			// Clear validation state when modal opens
 			const form = document.querySelector("#work-order-form");
 			if (form) {
@@ -562,7 +563,15 @@ $effect(() => {
               <label class="label" for="edit-title">
                 <span class="label-text">Title <span class="text-error">*</span></span>
               </label>
-              <input id="edit-title" name="title" type="text" class="input validator w-full" bind:value={editForm.title} required title="Title is required" />
+              <input
+                id="edit-title"
+                name="title"
+                type="text"
+                class="input validator w-full"
+                bind:value={editForm.title}
+                required
+                title="Title is required"
+              />
               <p class="validator-hint">Title is required</p>
             </div>
 
