@@ -48,7 +48,9 @@ let modalElement: HTMLDialogElement;
 
 const queryClient = useQueryClient();
 
-// Form state initialization handled in separate effect below
+// Reference to the title input for autofocus
+// biome-ignore lint/style/useConst: Cannot use const with bind:this
+let titleInputElement = $state<HTMLInputElement>();
 
 // Form state for editing/creating
 let editForm = $state({
@@ -68,23 +70,27 @@ let editForm = $state({
 // Form submission state
 let isCreatingLocation = $state(false);
 
-// Initialize form when work order changes or when creating new
+// Default form values (DRY principle)
+const DEFAULT_FORM_VALUES = {
+	title: "",
+	description: "",
+	status: "Open",
+	priority: "Medium",
+	assigned_to_user_id: "",
+	location_id: "",
+	location_address: "",
+	location_city: "",
+	location_state: "",
+	location_zip: "",
+} as const;
+
+// Initialize form state based on mode and work order data
 $effect(() => {
 	if (mode === "create" && isOpen) {
-		// Always reset to default values for create mode when modal opens
-		editForm = {
-			title: "",
-			description: "",
-			status: "Open",
-			priority: "Medium",
-			assigned_to_user_id: "",
-			location_id: "",
-			location_address: "",
-			location_city: "",
-			location_state: "",
-			location_zip: "",
-		};
+		// Reset to default values for create mode when modal opens
+		editForm = { ...DEFAULT_FORM_VALUES };
 	} else if (workOrder && mode === "edit") {
+		// Populate form with existing work order data
 		editForm = {
 			title: workOrder.title || "",
 			description: workOrder.description || "",
@@ -147,17 +153,30 @@ const workOrderCreateMutation = createMutation({
 	},
 });
 
+// Helper functions for form validation styling (DRY principle)
+function toggleValidationStyling(shouldAdd: boolean) {
+	if (!modalElement) return;
+
+	const form = modalElement.querySelector("#work-order-form");
+	if (!form) return;
+
+	const inputs = form.querySelectorAll(".validator");
+	for (const input of inputs) {
+		if (shouldAdd) {
+			input.classList.add("was-validated");
+		} else {
+			input.classList.remove("was-validated");
+		}
+	}
+}
+
+// Specific helper functions for clarity
+const addValidationStyling = () => toggleValidationStyling(true);
+const clearValidationState = () => toggleValidationStyling(false);
+
 async function handleSubmit() {
 	try {
-		// Add validation state to form fields
-		const form = document.querySelector("#work-order-form");
-		if (form) {
-			const inputs = form.querySelectorAll(".validator");
-			for (const input of inputs) {
-				input.classList.add("was-validated");
-			}
-		}
-
+		addValidationStyling();
 		let locationId: string | undefined = undefined;
 
 		// All fields are required for new work orders
@@ -397,45 +416,44 @@ async function handleDelete() {
 
 // Badge styling and date formatting now handled by shared utilities
 
-// Show/hide modal based on isOpen prop
+// Control modal visibility with proper cleanup
 $effect(() => {
-	if (modalElement) {
-		if (isOpen) {
-			logger.logUserAction("modal_opened", "WorkOrderModal", {
-				mode,
-				workOrderId: workOrder?.id,
-			});
-			modalElement.showModal();
+	if (!modalElement) return;
 
-			// Clear validation state when modal opens
-			const form = document.querySelector("#work-order-form");
-			if (form) {
-				const inputs = form.querySelectorAll(".validator");
-				for (const input of inputs) {
-					input.classList.remove("was-validated");
-				}
-			}
-		} else {
-			logger.logUserAction("modal_closed", "WorkOrderModal", {
-				mode,
-				workOrderId: workOrder?.id,
-			});
-			modalElement.close();
+	if (isOpen) {
+		logger.logUserAction("modal_opened", "WorkOrderModal", {
+			mode,
+			workOrderId: workOrder?.id,
+		});
+		clearValidationState(); // Clear validation BEFORE showing modal
+		modalElement.showModal();
+
+		// Autofocus title input when in create mode
+		if (mode === "create" && titleInputElement) {
+			// Dialog elements need a small delay to be ready for focus
+			setTimeout(() => {
+				titleInputElement?.focus();
+			}, 10);
 		}
+	} else {
+		logger.logUserAction("modal_closed", "WorkOrderModal", {
+			mode,
+			workOrderId: workOrder?.id,
+		});
+		modalElement.close();
 	}
 });
 
-// Handle modal close event
+// Handle modal close event with proper cleanup
 $effect(() => {
-	if (modalElement) {
-		const handleClose = () => {
-			onClose();
-		};
-		modalElement.addEventListener("close", handleClose);
-		return () => {
-			modalElement.removeEventListener("close", handleClose);
-		};
-	}
+	if (!modalElement) return;
+
+	const handleClose = () => onClose();
+	modalElement.addEventListener("close", handleClose);
+
+	return () => {
+		modalElement.removeEventListener("close", handleClose);
+	};
 });
 </script>
 
@@ -569,6 +587,7 @@ $effect(() => {
                 type="text"
                 class="input validator w-full"
                 bind:value={editForm.title}
+                bind:this={titleInputElement}
                 required
                 title="Title is required"
               />
